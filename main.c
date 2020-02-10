@@ -1,13 +1,10 @@
-#include <stdio.h>
+#include "cpu.h"
+#include "memory.h"
 
 int main()
 {
-    unsigned char buffer[10];
-    FILE *ptr = fopen("boot.bin", "rb");
-    fread(buffer, sizeof(buffer), 1, ptr);
-    for (int i = 0; i < 10; i++)
-        printf("%x ", buffer[i]);
-    printf("\n");
-    fclose(ptr);
+    loadBootRom();
+    for (int i = 0; i < 256; ++i)
+        cpuStep();
     return 0;
 }
