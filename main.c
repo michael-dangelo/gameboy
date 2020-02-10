@@ -3,8 +3,8 @@
 
 int main()
 {
-    loadBootRom();
+    Mem_loadBootRom();
     for (int i = 0; i < 256; ++i)
-        cpuStep();
+        Cpu_step();
     return 0;
 }
