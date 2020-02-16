@@ -1,9 +1,17 @@
 #include "cpu.h"
 #include "memory.h"
 
-int main()
+#include "stdio.h"
+
+int main(int argc, char **argv)
 {
-    for (int i = 0; i < 256; ++i)
+    if (argc != 2)
+    {
+        printf("\nUsage: %s <rom file>\n\n", argv[0]);
+        return 1;
+    }
+    Mem_loadCartridge(argv[1]);
+    while (1)
         Cpu_step();
     return 0;
 }

@@ -1,9 +1,12 @@
 #include "memory.h"
 
+#include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-static uint8_t ram[1 << 16];
+static uint8_t ram[0xFFFF];
 static uint8_t inBootRom = 1;
 static uint8_t bootRom[] = {
     0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
@@ -24,32 +27,149 @@ static uint8_t bootRom[] = {
     0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50,
 };
 
+void Mem_loadCartridge(char *cartFilename)
+{
+    FILE *cart = fopen(cartFilename, "rb");
+    if (!cart)
+    {
+        printf("Failed to open rom %s\n", cartFilename);
+        exit(1);
+    }
+    uint16_t cartSize = 1 << 14; // 16 KB
+    if (fread(ram, 1, cartSize, cart) != cartSize)
+    {
+        printf("Failed to read from cart\n");
+        exit(1);
+    }
+    if (fclose(cart))
+    {
+        printf("Failed to close cart\n");
+        exit(1);
+    }
+}
+
 uint8_t Mem_rb(uint16_t addr)
 {
-    uint8_t *mem = (inBootRom && addr <= 0x100) ? bootRom : ram;
+    uint8_t *mem = ram;
+    char location[20];
+    uint8_t msb = (addr & 0xF000) >> 12;
+    if (msb < 0x8)
+    {
+        if (addr <= 0x100 && inBootRom)
+        {
+            mem = bootRom;
+            strcpy(location, "bootrom");
+        }
+        else
+        {
+            strcpy(location, "cartrom");
+        }
+    }
+    else if (msb < 0xA)
+    {
+        strcpy(location, "vram");
+    }
+    else if (msb < 0xC)
+    {
+        strcpy(location, "externalram");
+    }
+    else if (msb < 0xE)
+    {
+        strcpy(location, "workingram");
+    }
+    else if (msb < 0xF || addr < 0xFE00)
+    {
+        strcpy(location, "workingramecho");
+        assert(0);
+    }
+    else if (addr < 0xFEA0)
+    {
+        strcpy(location, "oam");
+    }
+    else if (addr < 0xFF00)
+    {
+        strcpy(location, "notusable");
+        assert(0);
+    }
+    else if (addr < 0xFF80)
+    {
+        strcpy(location, "ioports");
+    }
+    else if (addr < 0xFFFF)
+    {
+        strcpy(location, "highram");
+    }
+    else if (addr == 0xFFFF)
+    {
+        strcpy(location, "interruptenable");
+    }
     uint8_t val = mem[addr];
-    printf("mem read byte at %04x, val %02x\n", addr, val);
+    printf("%s read byte at %04x, val %02x\n", location, addr, val);
     return val;
 }
 
 uint16_t Mem_rw(uint16_t addr)
 {
-    uint8_t *mem = (inBootRom && addr <= 0x100) ? bootRom : ram;
-    uint16_t val = mem[addr] + ((uint16_t)mem[addr + 1] << 8);
+    uint16_t val = Mem_rb(addr) + ((uint16_t)Mem_rb(addr + 1) << 8);
     printf("mem read word at %04x, val %04x\n", addr, val);
     return val;
 }
 
 void Mem_wb(uint16_t addr, uint8_t val)
 {
-    printf("mem write byte at %04x val %02x\n", addr, val);
+    char location[20];
+    uint8_t msb = (addr & 0xF000) >> 12;
+    if (msb < 0x8)
+    {
+        strcpy(location, "bootromcartrom");
+        assert(0);
+    }
+    else if (msb < 0xA)
+    {
+        strcpy(location, "vram");
+    }
+    else if (msb < 0xC)
+    {
+        strcpy(location, "externalram");
+    }
+    else if (msb < 0xE)
+    {
+        strcpy(location, "workingram");
+    }
+    else if (msb < 0xF || addr < 0xFE00)
+    {
+        strcpy(location, "workingramecho");
+        assert(0);
+    }
+    else if (addr < 0xFEA0)
+    {
+        strcpy(location, "oam");
+    }
+    else if (addr < 0xFF00)
+    {
+        strcpy(location, "notusable");
+        assert(0);
+    }
+    else if (addr < 0xFF80)
+    {
+        strcpy(location, "ioports");
+    }
+    else if (addr < 0xFFFF)
+    {
+        strcpy(location, "highram");
+    }
+    else if (addr == 0xFFFF)
+    {
+        strcpy(location, "interruptenable");
+    }
+    printf("%s write byte at %04x val %02x\n", location, addr, val);
     ram[addr] = val;
 }
 
 void Mem_ww(uint16_t addr, uint16_t val)
 {
     printf("mem write word at %04x val %04x\n", addr, val);
-    ram[addr] = val & 255;
-    ram[addr + 1] = val >> 8;
+    Mem_wb(addr, val & 255);
+    Mem_wb(addr + 1, val >> 8);
 }
 

@@ -10,7 +10,7 @@ build/main: $(OBJ)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 run: build/main
-	build/main	
+	build/main $(rom)
 
 .PHONY: clean
 
