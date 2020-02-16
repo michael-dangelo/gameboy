@@ -5,20 +5,19 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-static struct 
+static struct
 {
     uint8_t a, b, c, d, e, h, l, f;
     uint16_t pc, sp;
 } r;
 
-void dispatch(uint8_t op);
-
 // Helpers
 uint16_t rr(uint8_t high, uint8_t low) { return ((uint16_t)high << 8) + low; }
 uint16_t BC() { return rr(r.b, r.c); }
 uint16_t DE() { return rr(r.d, r.e); }
-uint16_t HL() { return rr(r.l, r.h); }
+uint16_t HL() { return rr(r.h, r.l); }
 uint16_t AF() { return rr(r.a, r.f); }
 uint8_t CY() { return (r.f >> 4) & 1; }
 uint8_t ZF() { return (r.f >> 7) & 1; }
@@ -27,20 +26,41 @@ void setFlag(uint8_t val, uint8_t pos) { if (val) r.f |= (1 << pos); else r.f &=
 void setCY(uint8_t val) { setFlag(val, 4); }
 void setZF(uint8_t val) { setFlag(val, 7); }
 
+// Debugging
 void printCpu()
 {
     printf("a: %02x b: %02x c: %02x d: %02x e: %02x h: %02x l: %02x f: %02x pc: %04x sp: %04x zf: %x cy: %x\n",
         r.a, r.b, r.c, r.d, r.e, r.h, r.l, r.f, r.pc, r.sp, ZF(), CY());
 }
 
-void Cpu_step()
+uint16_t debugCmd()
+{
+    char debugCmdBuffer[10];
+    fgets(debugCmdBuffer, 10, stdin);
+    char *ptr;
+    return strtoul(debugCmdBuffer, &ptr, 16);
+}
+
+void dispatch(uint8_t op);
+
+static void step()
 {
     printf("\n");
     uint8_t op = Mem_rb(r.pc++);
     printf("op %02x\n", op);
     dispatch(op);
     printCpu();
-    getchar();
+}
+
+// Main cpu loop
+void Cpu_step()
+{
+    uint16_t addr = debugCmd();
+    if (addr > 0)
+        while (r.pc != addr)
+            step();
+    else
+        step();
 }
 
 // 8-bit loads
@@ -63,7 +83,7 @@ void LDD_HLmA() { Mem_wb(HL(), r.a); setHL(HL() - 1); }
 void LDD_AHLm() { r.a = Mem_rb(HL()); setHL(HL() - 1); }
 
 // 16-bit loads
-void LD_rrnn(uint8_t *high, uint8_t *low) { *high = Mem_rb(r.pc++); *low = Mem_rb(r.pc++); }
+void LD_rrnn(uint8_t *high, uint8_t *low) { *low = Mem_rb(r.pc++); *high = Mem_rb(r.pc++); }
 void LD_SPnn() { r.sp = Mem_rw(r.pc); r.pc += 2; }
 void LD_nnmSP() { Mem_ww(Mem_rw(r.pc), r.sp); r.pc += 2; }
 void LD_SPHL() { r.sp = HL(); }
