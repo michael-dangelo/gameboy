@@ -6,8 +6,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-// TODO: SET FLAGS
-
 static struct 
 {
     uint8_t a, b, c, d, e, h, l, f;
@@ -69,79 +67,83 @@ void LD_rrnn(uint8_t *high, uint8_t *low) { *low = Mem_rb(r.pc++); *high = Mem_r
 void LD_SPnn() { r.sp = Mem_rw(r.pc); r.pc += 2; }
 void LD_nnmSP() { Mem_ww(Mem_rw(r.pc), r.sp); r.pc += 2; }
 void LD_SPHL() { r.sp = HL(); }
+void LD_HLSPdd() { int8_t d = Mem_rb(r.pc++); setHL(r.sp + d); setZF(0); setCY(d > 0 ? r.sp - d > r.sp : r.sp + d < r.sp); }
 void PUSH(uint16_t val) { r.sp -= 2; Mem_ww(r.sp, val); }
 void POP(uint8_t *high, uint8_t *low) { uint16_t w = Mem_rw(r.sp); *low = w & 0xFF; *high = w >> 8; r.sp += 2; }
 
 // 8-bit arithmetic/logical
-void ADD_r(uint8_t src) { r.a += src; }
-void ADD_n() { r.a += Mem_rb(r.pc++); }
-void ADD_HLm() { r.a += Mem_rb(HL()); }
-void ADC_r(uint8_t src) { r.a += src + CY(); }
-void ADC_n() { r.a += Mem_rb(r.pc++) + CY(); }
-void ADC_HLm() { r.a += Mem_rb(HL()) + CY(); }
-void SUB_r(uint8_t src) { r.a -= src; }
-void SUB_n() { r.a -= Mem_rb(r.pc++); }
-void SUB_HLm() { r.a -= Mem_rb(HL()); }
-void SBC_r(uint8_t src) { r.a -= src + CY(); }
-void SBC_n() { r.a -= Mem_rb(r.pc++) + CY(); }
-void SBC_HLm() { r.a -= Mem_rb(HL()) + CY(); }
-void AND_r(uint8_t src) { r.a &= src; }
-void AND_n() { r.a &= Mem_rb(r.pc++); }
-void AND_HLm() { r.a &= Mem_rb(HL()); }
-void XOR_r(uint8_t src) { r.a ^= src;}
-void XOR_n() { r.a ^= Mem_rb(r.pc++); }
-void XOR_HLm() { r.a ^= Mem_rb(HL()); }
-void OR_r(uint8_t src) { r.a |= src; }
-void OR_n() { r.a |= Mem_rb(r.pc++); }
-void OR_HLm() { r.a |= Mem_rb(HL()); }
-void CP_r(uint8_t src) { src++;/* just sets flags */ }
-void CP_n() { /* just sets flags */ }
-void CP_HLm() { /* just sets flags */ }
-void INC_r(uint8_t *src) { (*src)++; }
-void INC_HLm() { Mem_wb(HL(), Mem_rb(HL()) + 1); }
-void DEC_r(uint8_t *src) { (*src)++; }
-void DEC_HLm() { Mem_wb(HL(), Mem_rb(HL()) - 1); }
+void ADD_r(uint8_t src) { r.a += src; setZF(r.a == 0); setCY(r.a - src > r.a); }
+void ADD_n() { uint8_t n = Mem_rb(r.pc++); r.a += n; setZF(r.a == 0); setCY(r.a - n > r.a); }
+void ADD_HLm() { uint8_t n = Mem_rb(HL()); r.a += n; setZF(r.a == 0); setCY(r.a - n > r.a); }
+void ADC_r(uint8_t src) { r.a += src + CY(); setZF(r.a == 0); setCY(r.a - src > r.a); }
+void ADC_n() { uint8_t n = Mem_rb(r.pc++); r.a += n + CY(); setZF(r.a == 0); setCY(r.a - (n + CY()) > r.a); }
+void ADC_HLm() { uint8_t n = Mem_rb(HL()); r.a += n + CY(); setZF(r.a == 0); setCY(r.a - (n + CY()) > r.a); }
+void SUB_r(uint8_t src) { r.a -= src; setZF(r.a == 0); setCY(r.a + src < r.a); }
+void SUB_n() { uint8_t n = Mem_rb(r.pc++); r.a -= n; setZF(r.a == 0); setCY(r.a + n < r.a); }
+void SUB_HLm() { uint8_t n = Mem_rb(HL()); r.a -= n; setZF(r.a == 0); setCY(r.a + n < r.a); }
+void SBC_r(uint8_t src) { r.a -= src + CY(); setZF(r.a == 0); setCY(r.a + src + CY() < r.a); }
+void SBC_n() { uint8_t n = Mem_rb(r.pc++); r.a -= n + CY(); setZF(r.a == 0); setCY(r.a + n + CY() < r.a); }
+void SBC_HLm() { uint8_t n = Mem_rb(HL()); r.a -= n + CY(); setZF(r.a == 0); setCY(r.a + n + CY() < r.a); }
+void AND_r(uint8_t src) { r.a &= src; setZF(r.a == 0); setCY(0); }
+void AND_n() { r.a &= Mem_rb(r.pc++); setZF(r.a == 0); setCY(0); }
+void AND_HLm() { r.a &= Mem_rb(HL()); setZF(r.a == 0); setCY(0); }
+void XOR_r(uint8_t src) { r.a ^= src; setZF(r.a == 0); setCY(0); }
+void XOR_n() { r.a ^= Mem_rb(r.pc++); setZF(r.a == 0); setCY(0); }
+void XOR_HLm() { r.a ^= Mem_rb(HL()); setZF(r.a == 0); setCY(0); }
+void OR_r(uint8_t src) { r.a |= src; setZF(r.a == 0); setCY(0); }
+void OR_n() { r.a |= Mem_rb(r.pc++); setZF(r.a == 0); setCY(0); }
+void OR_HLm() { r.a |= Mem_rb(HL()); setZF(r.a == 0); setCY(0); }
+void CP_r(uint8_t src) { uint8_t n = r.a - src; setZF(n == 0); setCY(r.a - src > r.a); }
+void CP_n() { uint8_t n = Mem_rb(r.pc++); setZF(r.a - n == 0); setCY(r.a + n > r.a); }
+void CP_HLm() { uint8_t n = Mem_rb(HL()); setZF(r.a - n == 0); setCY(r.a + n > r.a); }
+void INC_r(uint8_t *src) { (*src)++; setZF(*src); }
+void INC_HLm() { Mem_wb(HL(), Mem_rb(HL()) + 1); setZF(Mem_rb(HL()) == 0); }
+void DEC_r(uint8_t *src) { (*src)++; setZF(*src); }
+void DEC_HLm() { Mem_wb(HL(), Mem_rb(HL()) - 1); setZF(Mem_rb(HL()) == 0); }
 void DAA() { assert(0); }
 void CPL() { r.a ^= 0xFF; }
+void SCF() { setCY(1); }
+void CCF() { setCY(CY() ^ 1); }
 
 // 16-bit arithmetic/logical
-void ADD_HLrr(uint16_t src) { setHL(src); }
+void ADD_HLrr(uint16_t src) { setHL(HL() + src); setCY(HL() - src > HL()); }
 void INC_rr(uint8_t *high, uint8_t *low) { (*low)++; if (!*low) (*high)++; }
 void INC_SP() { r.sp++; }
 void DEC_rr(uint8_t *high, uint8_t *low) { (*high)--; if (*high == INT8_MAX) (*low)--; }
 void DEC_SP() { r.sp--; }
-void ADD_SPdd() { r.sp += (int8_t)Mem_rb(r.pc++); }
-void LD_HLSPdd() { setHL(r.sp + (int8_t)Mem_rb(r.pc++)); }
+void ADD_SPdd() { int8_t d = Mem_rb(r.pc++); r.sp += d; setZF(0); setCY(d > 0 ? r.sp - d > r.sp : r.sp + d < r.sp); }
 
 // Rotate/shift
-void RLC_r(uint8_t *reg) { uint8_t v = (*reg >> 7) & 1; *reg <<= 1; *reg |= v; }
-void RLC_HLm() { uint8_t m = Mem_rb(HL()); uint8_t v = (m >> 7) & 1; m <<= 1; m |= v; setHL(m); }
-void RL_r(uint8_t *reg) { uint8_t v = CY(); setCY((*reg >> 7) & 1); *reg <<= 1; *reg |= v; }
-void RL_HLm() { uint8_t m = Mem_rb(HL()); uint8_t v = CY(); setCY((m >> 7) & 1); m <<= 1; m |= v; setHL(m); }
-void RRC_r(uint8_t *reg) { uint8_t v = *reg & 1; *reg >>= 1; *reg |= v << 7; }
-void RRC_HLm() { uint8_t m = Mem_rb(HL()); uint8_t v = m & 1; m >>= 1; m |= v << 7; setHL(m); }
-void RR_r(uint8_t *reg) { uint8_t v = CY(); setCY(*reg & 1); *reg >>= 1; *reg |= v << 7; }
-void RR_HLm() { uint8_t m = Mem_rb(HL()); uint8_t v = CY(); setCY(m & 1); m >>= 1; m |= v << 7; setHL(m); }
-void SLA_r(uint8_t *reg) { *reg <<= 1; }
-void SLA_HLm() { setHL(HL() << 1); }
-void SWAP_r(uint8_t *reg) { uint8_t v = *reg; *reg >>= 4; *reg += v << 4; }
-void SWAP_HLm() { uint8_t r = Mem_rb(HL()); uint8_t v = r; r >>= 4; r += v << 4; setHL(r); }
-void SRA_r(uint8_t *reg) { uint8_t v = *reg & (1 << 7); *reg >>= 1; *reg |= v; }
-void SRA_HLm() { uint8_t r = Mem_rb(HL()); uint8_t v = r & (1 << 7); r >>= 1; r |= v; setHL(r); }
-void SRL_r(uint8_t *reg) { *reg >>= 1; }
-void SRL_HLm() { setHL(Mem_rb(HL()) >> 1); }
+void RLCA() { uint8_t v = (r.a >> 7) & 1; r.a <<= 1; r.a |= v; setZF(0); setCY(v == 1); }
+void RLC_r(uint8_t *reg) { uint8_t v = (*reg >> 7) & 1; *reg <<= 1; *reg |= v; setZF(*reg == 0); setCY(v == 1); }
+void RLC_HLm() { uint8_t m = Mem_rb(HL()); uint8_t v = (m >> 7) & 1; m <<= 1; m |= v; setHL(m); setZF(Mem_rb(HL()) == 0); setCY(v == 1); }
+void RLA() { uint8_t v = CY(); setCY((r.a >> 7) & 1); r.a <<= 1; r.a |= v; setZF(0); setCY(v == 1); }
+void RL_r(uint8_t *reg) { uint8_t v = CY(); setCY((*reg >> 7) & 1); *reg <<= 1; *reg |= v; setZF(*reg == 0); setCY(v == 1); }
+void RL_HLm() { uint8_t m = Mem_rb(HL()); uint8_t v = CY(); setCY((m >> 7) & 1); m <<= 1; m |= v; setHL(m); setZF(Mem_rb(HL()) == 0); setCY(v == 1); }
+void RRCA() { uint8_t v = r.a & 1; r.a >>= 1; r.a |= v << 7; setZF(0); setCY(v == 1); }
+void RRC_r(uint8_t *reg) { uint8_t v = *reg & 1; *reg >>= 1; *reg |= v << 7; setZF(*reg == 0); setCY(v == 1); }
+void RRC_HLm() { uint8_t m = Mem_rb(HL()); uint8_t v = m & 1; m >>= 1; m |= v << 7; setHL(m); setZF(Mem_rb(HL()) == 0); setCY(v == 1); }
+void RRA() { uint8_t v = CY(); setCY(r.a & 1); r.a >>= 1; r.a |= v << 7; setZF(0); setCY(v == 1); }
+void RR_r(uint8_t *reg) { uint8_t v = CY(); setCY(*reg & 1); *reg >>= 1; *reg |= v << 7; setZF(*reg == 0); setCY(v == 1); }
+void RR_HLm() { uint8_t m = Mem_rb(HL()); uint8_t v = CY(); setCY(m & 1); m >>= 1; m |= v << 7; setHL(m); setZF(Mem_rb(HL()) == 0); setCY(v == 1); }
+void SLA_r(uint8_t *reg) { uint8_t v = *reg & (1 << 7); *reg <<= 1; setZF(*reg == 0); setCY(v == 1); }
+void SLA_HLm() { uint8_t v = HL() & (1 << 7); setHL(HL() << 1); setZF(Mem_rb(HL()) == 0); setCY(v == 1); }
+void SRA_r(uint8_t *reg) { uint8_t v = *reg & (1 << 7); *reg >>= 1; *reg |= v; setZF(*reg == 0); setCY(0);}
+void SRA_HLm() { uint8_t r = Mem_rb(HL()); uint8_t v = r & (1 << 7); r >>= 1; r |= v; setHL(r); setZF(Mem_rb(HL()) == 0); setCY(0); }
+void SWAP_r(uint8_t *reg) { uint8_t v = *reg; *reg >>= 4; *reg += v << 4; setZF(*reg == 0); setCY(0); }
+void SWAP_HLm() { uint8_t r = Mem_rb(HL()); uint8_t v = r; r >>= 4; r += v << 4; setHL(r); setZF(Mem_rb(HL()) == 0); setCY(0); }
+void SRL_r(uint8_t *reg) { uint8_t v = *reg & 1; *reg >>= 1; setZF(*reg == 0); setCY(v == 1); }
+void SRL_HLm() { uint8_t v = Mem_rb(HL()) & 1; setHL(Mem_rb(HL()) >> 1); setZF(Mem_rb(HL()) == 0); setCY(v == 1); }
 
 // Single-bit
-void BIT_nr(int n, uint8_t *reg) { n = n; *reg = *reg; /* SETS FLAGS */ }
-void BIT_nHLm(int n) { n = n; /* SETS FLAGS */ }
+void BIT_nr(int n, uint8_t *reg) { setZF((*reg >> n) & 1); }
+void BIT_nHLm(int n) { setZF((Mem_rb(HL()) >> n) & 1); }
 void SET_nr(int n, uint8_t *reg) { *reg |= 1 << n; }
 void SET_nHLm(int n) { setHL(HL() | 1 << n); }
 void RES_nr(int n, uint8_t *reg) { *reg &= ~(1 << n); }
 void RES_nHLm(int n) { setHL(HL() & ~(1 << n)); }
 
 // Control
-void CCF() { setCY(CY() ^ 1); }
-void SCF() { setCY(1); }
 void NOP() {}
 void HALT() { assert(0); }
 void STOP() { assert(0); }
@@ -186,7 +188,7 @@ void CB_PREFIX()
         case 0x04: RLC_r(&r.h); break;
         case 0x05: RLC_r(&r.l); break;
         case 0x06: RLC_HLm(); break;
-        case 0x07: RLC_r(&r.a); break;
+        case 0x07: RLCA(); setZF(r.a == 0); break;
         case 0x08: RRC_r(&r.b); break;
         case 0x09: RRC_r(&r.c); break;
         case 0x0A: RRC_r(&r.d); break;
@@ -194,7 +196,7 @@ void CB_PREFIX()
         case 0x0C: RRC_r(&r.h); break;
         case 0x0D: RRC_r(&r.l); break;
         case 0x0E: RRC_HLm(); break;
-        case 0x0F: RRC_r(&r.a); break;
+        case 0x0F: RRCA(); setZF(r.a == 0); break;
         case 0x10: RL_r(&r.b); break;
         case 0x11: RL_r(&r.c); break;
         case 0x12: RL_r(&r.d); break;
@@ -202,7 +204,7 @@ void CB_PREFIX()
         case 0x14: RL_r(&r.h); break;
         case 0x15: RL_r(&r.l); break;
         case 0x16: RL_HLm(); break;
-        case 0x17: RL_r(&r.a); break;
+        case 0x17: RLA(); setZF(r.a == 0); break;
         case 0x18: RR_r(&r.b); break;
         case 0x19: RR_r(&r.c); break;
         case 0x1A: RR_r(&r.d); break;
@@ -210,7 +212,7 @@ void CB_PREFIX()
         case 0x1C: RR_r(&r.h); break;
         case 0x1D: RR_r(&r.l); break;
         case 0x1E: RR_HLm(); break;
-        case 0x1F: RR_r(&r.a); break;
+        case 0x1F: RRA(); setZF(r.a == 0); break;
         case 0x20: SLA_r(&r.b); break;
         case 0x21: SLA_r(&r.c); break;
         case 0x22: SLA_r(&r.d); break;
