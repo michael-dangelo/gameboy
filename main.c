@@ -13,5 +13,4 @@ int main(int argc, char **argv)
     Mem_loadCartridge(argv[1]);
     while (1)
         Cpu_step();
-    return 0;
 }

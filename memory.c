@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS 1
+
 #include "memory.h"
 
 #include <assert.h>
@@ -5,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define LOC_SIZE 20
 
 static uint8_t ram[0xFFFF];
 static uint8_t inBootRom = 1;
@@ -27,7 +31,7 @@ static uint8_t bootRom[] = {
     0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50,
 };
 
-void Mem_loadCartridge(char *cartFilename)
+void Mem_loadCartridge(const char *cartFilename)
 {
     FILE *cart = fopen(cartFilename, "rb");
     if (!cart)
@@ -51,57 +55,57 @@ void Mem_loadCartridge(char *cartFilename)
 uint8_t Mem_rb(uint16_t addr)
 {
     uint8_t *mem = ram;
-    char location[20];
-    uint8_t msb = (addr & 0xF000) >> 12;
+    char location[LOC_SIZE];
+    const uint8_t msb = (addr & 0xF000) >> 12;
     if (msb < 0x8)
     {
         if (addr <= 0x100 && inBootRom)
         {
             mem = bootRom;
-            strcpy(location, "bootrom");
+            strncpy(location, "bootrom", LOC_SIZE);
         }
         else
         {
-            strcpy(location, "cartrom");
-        }
+            strncpy(location, "cartrom", LOC_SIZE);
+       }
     }
     else if (msb < 0xA)
     {
-        strcpy(location, "vram");
+        strncpy(location, "vram", LOC_SIZE);
     }
     else if (msb < 0xC)
     {
-        strcpy(location, "externalram");
+        strncpy(location, "externalram", LOC_SIZE);
     }
     else if (msb < 0xE)
     {
-        strcpy(location, "workingram");
+        strncpy(location, "workingram", LOC_SIZE);
     }
     else if (msb < 0xF || addr < 0xFE00)
     {
-        strcpy(location, "workingramecho");
+        strncpy(location, "workingramecho", LOC_SIZE);
         assert(0);
     }
     else if (addr < 0xFEA0)
     {
-        strcpy(location, "oam");
+        strncpy(location, "oam", LOC_SIZE);
     }
     else if (addr < 0xFF00)
     {
-        strcpy(location, "notusable");
+        strncpy(location, "notusable", LOC_SIZE);
         assert(0);
     }
     else if (addr < 0xFF80)
     {
-        strcpy(location, "ioports");
+        strncpy(location, "ioports", LOC_SIZE);
     }
     else if (addr < 0xFFFF)
     {
-        strcpy(location, "highram");
+        strncpy(location, "highram", LOC_SIZE);
     }
     else if (addr == 0xFFFF)
     {
-        strcpy(location, "interruptenable");
+        strncpy(location, "interruptenable", LOC_SIZE);
     }
     uint8_t val = mem[addr];
     printf("%s read byte at %04x, val %02x\n", location, addr, val);
@@ -117,50 +121,50 @@ uint16_t Mem_rw(uint16_t addr)
 
 void Mem_wb(uint16_t addr, uint8_t val)
 {
-    char location[20];
-    uint8_t msb = (addr & 0xF000) >> 12;
+    char location[LOC_SIZE];
+    const uint8_t msb = (addr & 0xF000) >> 12;
     if (msb < 0x8)
     {
-        strcpy(location, "bootromcartrom");
+        strncpy(location, "bootromcartrom", LOC_SIZE);
         assert(0);
     }
     else if (msb < 0xA)
     {
-        strcpy(location, "vram");
+        strncpy(location, "vram", LOC_SIZE);
     }
     else if (msb < 0xC)
     {
-        strcpy(location, "externalram");
+        strncpy(location, "externalram", LOC_SIZE);
     }
     else if (msb < 0xE)
     {
-        strcpy(location, "workingram");
+        strncpy(location, "workingram", LOC_SIZE);
     }
     else if (msb < 0xF || addr < 0xFE00)
     {
-        strcpy(location, "workingramecho");
+        strncpy(location, "workingramecho", LOC_SIZE);
         assert(0);
     }
     else if (addr < 0xFEA0)
     {
-        strcpy(location, "oam");
+        strncpy(location, "oam", LOC_SIZE);
     }
     else if (addr < 0xFF00)
     {
-        strcpy(location, "notusable");
+        strncpy(location, "notusable", LOC_SIZE);
         assert(0);
     }
     else if (addr < 0xFF80)
     {
-        strcpy(location, "ioports");
+        strncpy(location, "ioports", LOC_SIZE);
     }
     else if (addr < 0xFFFF)
     {
-        strcpy(location, "highram");
+        strncpy(location, "highram", LOC_SIZE);
     }
     else if (addr == 0xFFFF)
     {
-        strcpy(location, "interruptenable");
+        strncpy(location, "interruptenable", LOC_SIZE);
     }
     printf("%s write byte at %04x val %02x\n", location, addr, val);
     ram[addr] = val;

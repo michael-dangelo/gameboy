@@ -1,1 +1,1 @@
-void Cpu_step();
+void Cpu_step(void);

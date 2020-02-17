@@ -1,5 +1,6 @@
-build/
+bin/
 *.o
+*.obj
 *.gb
 .*.swp
 
