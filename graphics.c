@@ -37,4 +37,3 @@ void Graphics_step(void)
             exit(0);
     SDL_Delay(10);
 }
-

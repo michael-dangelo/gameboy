@@ -59,7 +59,7 @@ void Mem_loadCartridge(const char *cartFilename)
 uint8_t Mem_rb(uint16_t addr)
 {
     uint8_t *mem = ram;
-    char *location = "unknown";
+    char *location = strdup("unknown");
     const uint8_t msb = (addr & 0xF000) >> 12;
     if (msb < 0x8)
     {
@@ -113,6 +113,7 @@ uint8_t Mem_rb(uint16_t addr)
     }
     uint8_t val = mem[addr];
     printf("%s read byte at %04x, val %02x\n", location, addr, val);
+    free(location);
     return val;
 }
 
@@ -125,7 +126,7 @@ uint16_t Mem_rw(uint16_t addr)
 
 void Mem_wb(uint16_t addr, uint8_t val)
 {
-    char *location = "unknown";
+    char *location = strdup("unknown");
     const uint8_t msb = (addr & 0xF000) >> 12;
     if (msb < 0x8)
     {
@@ -171,6 +172,7 @@ void Mem_wb(uint16_t addr, uint8_t val)
         location = strdup("interruptenable");
     }
     printf("%s write byte at %04x val %02x\n", location, addr, val);
+    free(location);
     ram[addr] = val;
 }
 
