@@ -55,12 +55,12 @@ static void step(void)
 // Main cpu loop
 void Cpu_step(void)
 {
-    uint16_t addr = debugCmd();
+    /*uint16_t addr = debugCmd();
     if (addr > 0)
         while (r.pc != addr)
             step();
-    else
-        step();
+    else*/
+    step();
 }
 
 // 8-bit loads
