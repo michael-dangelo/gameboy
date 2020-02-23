@@ -29,11 +29,68 @@ void Graphics_init(void)
     }
 }
 
-void Graphics_step(void)
+enum Mode {
+    HBLANK,
+    VBLANK,
+    OAM,
+    VRAM
+};
+
+static uint16_t clock = 0;
+static uint8_t mode = 0;
+static uint8_t line = 0;
+
+static void step(uint8_t ticks)
+{
+    clock += ticks;
+    switch (mode)
+    {
+        case HBLANK:
+            if (clock < 204)
+                return;
+            clock = 0;
+            line++;
+            if (line == 143)
+            {
+                mode = VBLANK;
+                // TODO: blit image onto window
+            }
+            else
+            {
+                mode = OAM;
+            }
+            break;
+        case VBLANK:
+            if (clock < 4560)
+                return;
+            clock = 0;
+            line = 0;
+            mode = OAM;
+            break;
+        case OAM:
+            if (clock < 80)
+                return;
+            clock = 0;
+            mode = VRAM;
+            break;
+        case VRAM:
+            if (clock < 172)
+                return;
+            clock = 0;
+            mode = HBLANK;
+            // TODO: render current scanline
+            break;
+    }
+    return;
+}
+
+void Graphics_step(uint8_t ticks)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
         if (event.type == SDL_QUIT)
             exit(0);
-    SDL_Delay(10);
+    step(ticks);
+    printf("graphics - clock %d mode %d\n", clock, mode);
+    SDL_Delay(1000);
 }

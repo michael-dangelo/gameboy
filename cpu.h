@@ -1,7 +1,9 @@
 #ifndef CPU_H
 #define CPU_H
 
-void Cpu_step(void);
+#include <stdint.h>
+
+uint8_t Cpu_step(void);
 
 #endif
 

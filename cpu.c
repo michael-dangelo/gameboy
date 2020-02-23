@@ -3,7 +3,6 @@
 #include "memory.h"
 
 #include <assert.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -11,7 +10,7 @@ static struct
 {
     uint8_t a, b, c, d, e, h, l, f;
     uint16_t pc, sp;
-    uint16_t m;
+    uint8_t m, t;
 } r;
 
 // Helpers
@@ -30,8 +29,8 @@ static void setZF(uint8_t val) { setFlag(val, 7); }
 // Debugging
 static void printCpu(void)
 {
-    printf("a: %02x b: %02x c: %02x d: %02x e: %02x h: %02x l: %02x f: %02x pc: %04x sp: %04x zf: %x cy: %x\n",
-        r.a, r.b, r.c, r.d, r.e, r.h, r.l, r.f, r.pc, r.sp, ZF(), CY());
+    printf("a: %02x b: %02x c: %02x d: %02x e: %02x h: %02x l: %02x f: %02x pc: %04x sp: %04x zf: %x cy: %x m: %x\n",
+        r.a, r.b, r.c, r.d, r.e, r.h, r.l, r.f, r.pc, r.sp, ZF(), CY(), r.m);
 }
 
 static uint16_t debugCmd(void)
@@ -54,7 +53,7 @@ static void step(void)
 }
 
 // Main cpu loop
-void Cpu_step(void)
+uint8_t Cpu_step(void)
 {
     /*uint16_t addr = debugCmd();
     if (addr > 0)
@@ -62,6 +61,8 @@ void Cpu_step(void)
             step();
     else*/
     step();
+    r.t = r.m * 4;
+    return r.t;
 }
 
 // 8-bit loads
@@ -459,7 +460,7 @@ static void CB_PREFIX()
         case 0xFD: SET_nr(6, &r.l); break;
         case 0xFE: SET_nHLm(6); break;
         case 0xFF: SET_nr(6, &r.a); break;
-        default: printf("UNKNOWN CB OP %02x\n", op); assert(0);
+        default: printf("unknown cb op %02x\n", op); assert(0);
     }
 }
 
@@ -712,7 +713,7 @@ static void dispatch(uint8_t op)
         case 0xFB: EI(); break;
         case 0xFE: CP_n(); break;
         case 0xFF: RST_n(0x38); break;
-        default: printf("UNKNOWN OP %02x\n", op); assert(0);
+        default: printf("unknown op %02x\n", op); assert(0);
     }
 }
 
