@@ -2,7 +2,8 @@
 #include "graphics.h"
 #include "memory.h"
 
-#include "stdio.h"
+#include <stdint.h>
+#include <stdio.h>
 
 int main(int argc, char **argv)
 {
@@ -11,12 +12,12 @@ int main(int argc, char **argv)
         printf("\nUsage: %s <rom file>\n\n", argv[0]);
         return 1;
     }
-    Graphics_init();
     Mem_loadCartridge(argv[1]);
+    Graphics_init();
     while (1)
     {
-        Cpu_step();
-        Graphics_step();
+        printf("----------------");
+        Graphics_step(Cpu_step());
     }
 }
 
