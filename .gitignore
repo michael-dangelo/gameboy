@@ -1,4 +1,5 @@
 bin/
+docs/
 *.o
 *.obj
 *.gb
