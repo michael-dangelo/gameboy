@@ -716,4 +716,3 @@ static void dispatch(uint8_t op)
         default: printf("unknown op %02x\n", op); assert(0);
     }
 }
-

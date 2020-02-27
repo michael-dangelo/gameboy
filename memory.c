@@ -1,5 +1,7 @@
 #include "memory.h"
 
+#include "graphics.h"
+
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -99,6 +101,10 @@ uint8_t Mem_rb(uint16_t addr)
         location = strdup("notusable");
         assert(0);
     }
+    else if (addr == 0xFF40)
+    {
+        return Graphics_rb();
+    }
     else if (addr < 0xFF80)
     {
         location = strdup("ioports");
@@ -159,6 +165,11 @@ void Mem_wb(uint16_t addr, uint8_t val)
         location = strdup("notusable");
         assert(0);
     }
+    else if (addr == 0xFF40)
+    {
+        Graphics_wb(val);
+        return;
+    }
     else if (addr < 0xFF80)
     {
         location = strdup("ioports");
@@ -182,4 +193,3 @@ void Mem_ww(uint16_t addr, uint16_t val)
     Mem_wb(addr, val & 255);
     Mem_wb(addr + 1, val >> 8);
 }
-
