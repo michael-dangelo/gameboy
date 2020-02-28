@@ -95,7 +95,6 @@ void Graphics_step(uint8_t ticks)
             exit(0);
     step(ticks);
     printf("graphics - clock %d mode %d\n", clock, mode);
-    // SDL_Delay(1000);
 }
 
 uint8_t Graphics_rb()
@@ -123,5 +122,4 @@ void Graphics_wb(uint8_t val)
     spriteDisplayEnable = (val >> 1) & 1;
     bgDisplay = val & 1;
     printf("writing to gpu - %02x", val);
-    exit(0);
 }

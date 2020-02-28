@@ -45,7 +45,6 @@ static void dispatch(uint8_t op);
 
 static void step(void)
 {
-    printf("\n");
     uint8_t op = Mem_rb(r.pc++);
     printf("op %02x\n", op);
     dispatch(op);
@@ -118,9 +117,9 @@ static void OR_HLm(void) { r.a |= Mem_rb(HL()); setZF(r.a == 0); setCY(0); r.m =
 static void CP_r(uint8_t src) { uint8_t n = r.a - src; setZF(n == 0); setCY(r.a - src > r.a); r.m = 1; }
 static void CP_n(void) { uint8_t n = Mem_rb(r.pc++); setZF(r.a - n == 0); setCY(r.a + n > r.a); r.m = 2; }
 static void CP_HLm(void) { uint8_t n = Mem_rb(HL()); setZF(r.a - n == 0); setCY(r.a + n > r.a); r.m = 2; }
-static void INC_r(uint8_t *src) { (*src)++; setZF(*src); r.m = 1; }
+static void INC_r(uint8_t *src) { (*src)++; setZF(*src == 0); r.m = 1; }
 static void INC_HLm(void) { Mem_wb(HL(), Mem_rb(HL()) + 1); setZF(Mem_rb(HL()) == 0); r.m = 3; }
-static void DEC_r(uint8_t *src) { (*src)++; setZF(*src); r.m = 1; }
+static void DEC_r(uint8_t *src) { (*src)--; setZF(*src == 0); r.m = 1; }
 static void DEC_HLm(void) { Mem_wb(HL(), Mem_rb(HL()) - 1); setZF(Mem_rb(HL()) == 0); r.m = 3; }
 static void DAA(void) { assert(0); r.m = 1; }
 static void CPL(void) { r.a ^= 0xFF; r.m = 1; }
@@ -190,7 +189,7 @@ static void CALLNZ_nn(void) { if (!ZF()) { CALL_nn(); r.m = 6; } else { r.pc += 
 static void CALLZ_nn(void) { if (ZF()) { CALL_nn(); r.m = 6; } else { r.pc += 2; r.m = 3; } }
 static void CALLNC_nn(void) { if (!CY()) { CALL_nn(); r.m = 6; } else { r.pc += 2; r.m = 3; } }
 static void CALLC_nn(void) { if (CY()) { CALL_nn(); r.m = 6; } else { r.pc += 2; r.m = 3; } }
-static void RET(void) { r.pc = Mem_rw(r.sp); r.sp -= 2; r.m = 4; }
+static void RET(void) { r.pc = Mem_rw(r.sp); r.sp += 2; r.m = 4; }
 static void RETNZ(void) { if (!ZF()) { RET(); r.m = 5; } else r.m = 2; }
 static void RETZ(void) { if (ZF()) { RET(); r.m = 5; } else r.m = 2; }
 static void RETNC(void) { if (!CY()) { RET(); r.m = 5; } else r.m = 2; }

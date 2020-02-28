@@ -16,8 +16,9 @@ int main(int argc, char **argv)
     Graphics_init();
     while (1)
     {
-        printf("----------------");
-        Graphics_step(Cpu_step());
+        printf("----------------\n");
+        uint8_t ticks = Cpu_step();
+        Graphics_step(ticks);
     }
 }
 

@@ -189,7 +189,7 @@ void Mem_wb(uint16_t addr, uint8_t val)
 
 void Mem_ww(uint16_t addr, uint16_t val)
 {
-    printf("mem write word at %04x val %04x\n", addr, val);
     Mem_wb(addr, val & 255);
     Mem_wb(addr + 1, val >> 8);
+    printf("mem write word at %04x val %04x\n", addr, val);
 }
