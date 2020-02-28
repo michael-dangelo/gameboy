@@ -101,9 +101,9 @@ uint8_t Mem_rb(uint16_t addr)
         location = strdup("notusable");
         assert(0);
     }
-    else if (addr == 0xFF40)
+    else if (addr == 0xFF40 || addr == 0xFF44)
     {
-        return Graphics_rb();
+        return Graphics_rb(addr);
     }
     else if (addr < 0xFF80)
     {
@@ -118,7 +118,7 @@ uint8_t Mem_rb(uint16_t addr)
         location = strdup("interruptenable");
     }
     uint8_t val = mem[addr];
-    printf("%s read byte at %04x, val %02x\n", location, addr, val);
+    // printf("%s read byte at %04x, val %02x\n", location, addr, val);
     free(location);
     return val;
 }
@@ -126,7 +126,7 @@ uint8_t Mem_rb(uint16_t addr)
 uint16_t Mem_rw(uint16_t addr)
 {
     uint16_t val = Mem_rb(addr) + ((uint16_t)Mem_rb(addr + 1) << 8);
-    printf("mem read word at %04x, val %04x\n", addr, val);
+    // printf("mem read word at %04x, val %04x\n", addr, val);
     return val;
 }
 
@@ -165,9 +165,9 @@ void Mem_wb(uint16_t addr, uint8_t val)
         location = strdup("notusable");
         assert(0);
     }
-    else if (addr == 0xFF40)
+    else if (addr == 0xFF40 || addr == 0xFF44)
     {
-        Graphics_wb(val);
+        Graphics_wb(addr, val);
         return;
     }
     else if (addr < 0xFF80)
@@ -182,7 +182,7 @@ void Mem_wb(uint16_t addr, uint8_t val)
     {
         location = strdup("interruptenable");
     }
-    printf("%s write byte at %04x val %02x\n", location, addr, val);
+    // printf("%s write byte at %04x val %02x\n", location, addr, val);
     free(location);
     ram[addr] = val;
 }
@@ -191,5 +191,5 @@ void Mem_ww(uint16_t addr, uint16_t val)
 {
     Mem_wb(addr, val & 255);
     Mem_wb(addr + 1, val >> 8);
-    printf("mem write word at %04x val %04x\n", addr, val);
+    // printf("mem write word at %04x val %04x\n", addr, val);
 }

@@ -33,32 +33,19 @@ static void printCpu(void)
         r.a, r.b, r.c, r.d, r.e, r.h, r.l, r.f, r.pc, r.sp, ZF(), CY(), r.m);
 }
 
-static uint16_t debugCmd(void)
-{
-    char debugCmdBuffer[10];
-    fgets(debugCmdBuffer, 10, stdin);
-    char *ptr;
-    return (uint16_t)strtoul(debugCmdBuffer, &ptr, 16);
-}
-
 static void dispatch(uint8_t op);
 
 static void step(void)
 {
     uint8_t op = Mem_rb(r.pc++);
-    printf("op %02x\n", op);
+    // printf("op %02x\n", op);
     dispatch(op);
-    printCpu();
+    // printCpu();
 }
 
 // Main cpu loop
 uint8_t Cpu_step(void)
 {
-    /*uint16_t addr = debugCmd();
-    if (addr > 0)
-        while (r.pc != addr)
-            step();
-    else*/
     step();
     r.t = r.m * 4;
     return r.t;
@@ -200,7 +187,7 @@ static void RST_n(uint8_t n) { CALL(n); r.m = 4; }
 static void CB_PREFIX()
 {
     uint8_t op = Mem_rb(r.pc++);
-    printf("cb op %02x\n" , op);
+    // printf("cb op %02x\n" , op);
     switch(op)
     {
         case 0x00: RLC_r(&r.b); break;
