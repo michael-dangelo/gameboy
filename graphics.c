@@ -17,6 +17,12 @@ static uint8_t spriteSize = 0;
 static uint8_t spriteDisplayEnable = 0;
 static uint8_t bgDisplay = 0;
 
+// FF42 - Scroll Y
+static uint8_t scrollY;
+
+// FF43 - Scrool X
+static uint8_t scrollX;
+
 // FF44 - LDC Y-Coordinate
 static uint8_t line = 0;
 
@@ -54,6 +60,11 @@ typedef enum {
 static Mode mode = 0;
 static uint16_t clock = 0;
 
+static void renderScanline()
+{
+
+}
+
 static void step(uint8_t ticks)
 {
     clock += ticks;
@@ -90,7 +101,7 @@ static void step(uint8_t ticks)
                 return;
             clock = 0;
             mode = HBLANK;
-            // TODO: render current scanline
+            renderScanline();
             break;
     }
     return;
@@ -121,6 +132,12 @@ uint8_t Graphics_rb(uint16_t addr)
                   (spriteDisplayEnable << 1) |
                   (bgDisplay);
             break;
+        case 0xFF42:
+            res = scrollY;
+            break;
+        case 0xFF43:
+            res = scrollX;
+            break;
         case 0xFF44:
             res = line;
             break;
@@ -144,6 +161,10 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             spriteDisplayEnable = (val >> 1) & 1;
             bgDisplay = val & 1;
             break;
+        case 0xFF42:
+            scrollY = val;
+        case 0xFF43:
+            scrollX = val;
         case 0xFF44:
             // Writing to the LCD Y-Coordinate register (line) resets the counter.
             line = 0;

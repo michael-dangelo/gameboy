@@ -101,7 +101,7 @@ uint8_t Mem_rb(uint16_t addr)
         location = strdup("notusable");
         assert(0);
     }
-    else if (addr == 0xFF40 || addr == 0xFF44)
+    else if (0xFF40 <= addr && addr <= 0xFF44)
     {
         return Graphics_rb(addr);
     }
@@ -165,7 +165,7 @@ void Mem_wb(uint16_t addr, uint8_t val)
         location = strdup("notusable");
         assert(0);
     }
-    else if (addr == 0xFF40 || addr == 0xFF44)
+    else if (0xFF40 <= addr && addr <= 0xFF44)
     {
         Graphics_wb(addr, val);
         return;
