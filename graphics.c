@@ -64,9 +64,12 @@ static void step(uint8_t ticks)
                 mode = VBLANK;
             break;
         case VBLANK:
-            if (clock < 4560)
+            if (clock < 456)
                 return;
             clock = 0;
+            line++;
+            if (line <= 153)
+                return;
             line = 0;
             mode = OAM;
             break;
