@@ -132,6 +132,10 @@ uint8_t Graphics_rb(uint16_t addr)
                   (spriteDisplayEnable << 1) |
                   (bgDisplay);
             break;
+        case 0xFF41:
+            printf("unhandled read from GPU status register");
+            exit(0);
+            break;
         case 0xFF42:
             res = scrollY;
             break;
@@ -160,6 +164,10 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             spriteSize = (val >> 2) & 1;
             spriteDisplayEnable = (val >> 1) & 1;
             bgDisplay = val & 1;
+            break;
+        case 0xFF41:
+            printf("unhandled write to GPU status register");
+            exit(0);
             break;
         case 0xFF42:
             scrollY = val;
