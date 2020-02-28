@@ -7,6 +7,8 @@
 
 static SDL_Surface *screen = NULL;
 
+static uint8_t vram[0x2000];
+
 // FF40 - LCD control
 static uint8_t lcdDisplayEnable = 0;
 static uint8_t windowTileMapSelect = 0;
@@ -120,6 +122,10 @@ void Graphics_step(uint8_t ticks)
 uint8_t Graphics_rb(uint16_t addr)
 {
     uint8_t res = 0;
+    if (addr < 0xA000)
+    {
+        res = vram[addr - 0x8000];
+    }
     switch (addr)
     {
         case 0xFF40:
@@ -152,7 +158,10 @@ uint8_t Graphics_rb(uint16_t addr)
 
 void Graphics_wb(uint16_t addr, uint8_t val)
 {
-    // printf("writing to gpu addr %02x val %02x", addr, val);
+    if (addr < 0xA000)
+    {
+        vram[addr - 0x8000] = val;
+    }
     switch (addr)
     {
         case 0xFF40:
@@ -178,4 +187,5 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             line = 0;
             break;
     }
+    // printf("writing to gpu addr %02x val %02x\n", addr, val);
 }

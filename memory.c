@@ -77,7 +77,8 @@ uint8_t Mem_rb(uint16_t addr)
     }
     else if (msb < 0xA)
     {
-        location = strdup("vram");
+        // vram
+        return Graphics_rb(addr);
     }
     else if (msb < 0xC)
     {
@@ -141,7 +142,9 @@ void Mem_wb(uint16_t addr, uint8_t val)
     }
     else if (msb < 0xA)
     {
-        location = strdup("vram");
+        // vram
+        Graphics_wb(addr, val);
+        return;
     }
     else if (msb < 0xC)
     {
