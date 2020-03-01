@@ -178,7 +178,7 @@ void Mem_wb(uint16_t addr, uint8_t val)
     else if (addr == 0xFF50)
     {
         location = strdup("disablebootromregister");
-        inBootRom = val;
+        inBootRom = !val;
     }
     else if (addr < 0xFF80)
     {
