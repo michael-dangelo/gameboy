@@ -85,18 +85,14 @@ static uint8_t colorAt(uint16_t tileLine, uint8_t x)
     uint8_t h = tileLine & 0xFF;
     uint8_t pixelOffset = 7 - x; // leftmost pixel is 7th bit
     uint8_t colorIndex = ((l >> pixelOffset) & 1) | (((h >> pixelOffset) & 1) << 1);
-    if (colorIndex > 3)
-    {
-        printf("bad color value");
-        exit(1);
-    }
     uint8_t color = (palette >> colorIndex) & 3;
-    static uint8_t colors[4] = {235, 192, 96, 0};
-    return colors[color];
+    return color;
 }
 
 static void renderScanline()
 {
+    int colorIndex[4] = {0};
+    SDL_Point colorPoints[4][160] = {0};
     uint16_t tileMap = bgTileMapSelect ? 0x1C00 : 0x1800;
     uint16_t tileMapOffset = tileMap + (((line + scrollY) / 8) * 32);
     uint16_t yOffset = ((line + scrollY) & 7) * 2;
@@ -106,8 +102,11 @@ static void renderScanline()
     for (uint8_t i = 0; i < 160; i++)
     {
         uint8_t color = colorAt(tileLine, x);
-        SDL_SetRenderDrawColor(renderer, color, color, color, 255);
-        SDL_RenderDrawPoint(renderer, i, line);
+        SDL_Point p;
+        p.x = i;
+        p.y = line;
+        colorPoints[color][colorIndex[color]] = p;
+        colorIndex[color]++;
         x++;
         if (x == 8)
         {
@@ -115,6 +114,15 @@ static void renderScanline()
             tileMapIndex++;
             tileLine = tileLineAt(tileMapOffset + tileMapIndex, yOffset);
         }
+    }
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        static uint8_t colors[4] = {235, 192, 96, 0};
+        uint8_t color = colors[i];
+        SDL_SetRenderDrawColor(renderer, color, color, color, 255);
+        SDL_Point *points = colorPoints[i];
+        int count = colorIndex[i];
+        SDL_RenderDrawPoints(renderer, points, count);
     }
 }
 
