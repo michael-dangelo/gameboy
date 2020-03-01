@@ -32,10 +32,10 @@ static uint8_t spriteDisplayEnable = 0;
 static uint8_t bgDisplay = 0;
 
 // FF42 - Scroll Y
-static uint8_t scrollY;
+static uint8_t scrollY = 0;
 
 // FF43 - Scrool X
-static uint8_t scrollX;
+static uint8_t scrollX = 0;
 
 // FF44 - LDC Y-Coordinate
 static uint8_t line = 0;
@@ -72,9 +72,8 @@ void Graphics_init(void)
     SDL_UpdateWindowSurface(window);
 }
 
-static uint16_t tileLineAt(uint16_t mapRow, uint16_t rowOffset, uint16_t yOffset)
+static uint16_t tileLineAt(uint16_t addr, uint16_t yOffset)
 {
-    uint16_t addr = mapRow + rowOffset;
     uint16_t tile = tileDataSelect ? (uint16_t)vram[addr] * 16
                                    : 0x1000 + ((int16_t)vram[addr] * 16);
     uint16_t pixels = tile + yOffset;
@@ -93,18 +92,20 @@ static uint8_t colorAt(uint16_t tileLine, uint8_t x)
         exit(1);
     }
     uint8_t color = (palette >> colorIndex) & 3;
-    static uint8_t colors[4] = {255, 192, 96, 0};
+    static uint8_t colors[4] = {235, 192, 96, 0};
     return colors[color];
 }
 
 static void renderScanline()
 {
     uint16_t tileMap = bgTileMapSelect ? 0x1C00 : 0x1800;
-    uint16_t tileMapRow = tileMap + (((line + scrollY) >> 3) * 32);
-    uint16_t tileMapIndex = scrollX >> 3;
+    uint16_t tileMapOffset = tileMap + (((line + scrollY) / 8) * 32);
     uint16_t yOffset = ((line + scrollY) & 7) * 2;
-    uint16_t tileLine = tileLineAt(tileMapRow, tileMapIndex, yOffset);
+    uint16_t tileMapIndex = scrollX / 8;
+    uint16_t tileLine = tileLineAt(tileMapOffset + tileMapIndex, yOffset);
     uint8_t x = scrollX & 7;
+    // if (line % 10 == 0)
+    //     printf("line %d scrolledLine %d rowNo %d tileNo %d mapOffset %04x index %d\n", line, line + scrollY, (line + scrollY) / 8, ((line + scrollY) / 8) * 32, tileMapOffset, tileMapIndex);
     for (uint8_t i = 0; i < 160; i++)
     {
         uint8_t color = colorAt(tileLine, x);
@@ -115,7 +116,7 @@ static void renderScanline()
         {
             x = 0;
             tileMapIndex++;
-            tileLine = tileLineAt(tileMapRow, tileMapIndex, yOffset);
+            tileLine = tileLineAt(tileMapOffset + tileMapIndex, yOffset);
         }
     }
     SDL_RenderPresent(renderer);
@@ -207,7 +208,6 @@ uint8_t Graphics_rb(uint16_t addr)
             res = line;
             break;
         case 0xFF47:
-            printf("reading from bg palette %02x", palette);
             res = palette;
             break;
     }
@@ -240,10 +240,12 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             break;
         case 0xFF42:
             scrollY = val;
+            break;
         case 0xFF43:
             scrollX = val;
+            break;
         case 0xFF44:
-            // Writing to the LCD Y-Coordinate register (line) resets the counter.
+            // Writing to the LCD Y-Coordinate register (line) resets the counter
             line = 0;
             break;
         case 0xFF47:
