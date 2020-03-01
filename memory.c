@@ -46,7 +46,7 @@ void Mem_loadCartridge(const char *cartFilename)
         printf("Failed to open rom %s\n", cartFilename);
         exit(1);
     }
-    uint16_t cartSize = 1 << 14; // 16 KB
+    uint16_t cartSize = 1 << 15; // 32 KB
     if (fread(ram, 1, cartSize, cart) != cartSize)
     {
         printf("Failed to read from cart\n");
