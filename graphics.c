@@ -116,7 +116,6 @@ static void renderScanline()
             tileLine = tileLineAt(tileMapOffset + tileMapIndex, yOffset);
         }
     }
-    SDL_RenderPresent(renderer);
 }
 
 static void step(uint8_t ticks)
@@ -142,6 +141,7 @@ static void step(uint8_t ticks)
                 return;
             line = 0;
             mode = OAM;
+            SDL_RenderPresent(renderer);
             break;
         case OAM:
             if (clock < 80)
