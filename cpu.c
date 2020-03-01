@@ -40,7 +40,7 @@ static void step(void)
     uint8_t op = Mem_rb(r.pc++);
     CPU_PRINT(("op %02x\n", op));
     dispatch(op);
-    if (r.pc == 0xFC)
+    if (r.pc == 0x100)
         enableDebugPrints = 1;
     printCpu();
 }

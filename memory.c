@@ -91,8 +91,8 @@ uint8_t Mem_rb(uint16_t addr)
     }
     else if (msb < 0xF || addr < 0xFE00)
     {
+        addr -= 0x2000;
         location = strdup("workingramecho");
-        assert(0);
     }
     else if (addr < 0xFEA0)
     {
@@ -158,8 +158,8 @@ void Mem_wb(uint16_t addr, uint8_t val)
     }
     else if (msb < 0xF || addr < 0xFE00)
     {
+        addr -= 0x2000;
         location = strdup("workingramecho");
-        assert(0);
     }
     else if (addr < 0xFEA0)
     {
