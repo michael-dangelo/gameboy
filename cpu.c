@@ -10,6 +10,7 @@ static struct
     uint8_t a, b, c, d, e, h, l, f;
     uint16_t pc, sp;
     uint8_t m, t;
+    uint8_t ime;
 } r;
 
 // Helpers
@@ -29,8 +30,9 @@ static void printCpu(void)
 {
     CPU_PRINT(("a: %02x b: %02x c: %02x d: %02x e: %02x "
                "h: %02x l: %02x f: %02x pc: %04x sp: %04x "
-               "zf: %x cy: %x m: %x\n",
-        r.a, r.b, r.c, r.d, r.e, r.h, r.l, r.f, r.pc, r.sp, ZF(), CY(), r.m));
+               "zf: %d cy: %d m: %x ime %d\n",
+        r.a, r.b, r.c, r.d, r.e, r.h, r.l, r.f,
+        r.pc, r.sp, ZF(), CY(), r.m, r.ime));
 }
 
 static void dispatch(uint8_t op);
@@ -157,8 +159,8 @@ static void RES_nHLm(uint8_t n) { setHL(HL() & ~(1 << n)); r.m = 4; }
 static void NOP(void) { r.m = 1; }
 static void HALT(void) { assert(0); r.m = 1; }
 static void STOP(void) { assert(0); }
-static void DI(void) { r.m = 1; assert(1); }
-static void EI(void) { r.m = 1; assert(1); }
+static void DI(void) { r.ime = 0; r.m = 1; }
+static void EI(void) { r.ime = 1; r.m = 1; }
 
 // Jumps
 static void JP_nn(void) { r.pc = Mem_rw(r.pc); r.m = 4; }
@@ -183,7 +185,7 @@ static void RETNZ(void) { if (!ZF()) { RET(); r.m = 5; } else r.m = 2; }
 static void RETZ(void) { if (ZF()) { RET(); r.m = 5; } else r.m = 2; }
 static void RETNC(void) { if (!CY()) { RET(); r.m = 5; } else r.m = 2; }
 static void RETC(void) { if (CY()) { RET(); r.m = 5; } else r.m = 2; }
-static void RETI(void) { RET(); EI(); r.m = 4; }
+static void RETI(void) { EI(); RET(); r.m = 4; }
 static void RST_n(uint8_t n) { CALL(n); r.m = 4; }
 
 static void CB_PREFIX()
