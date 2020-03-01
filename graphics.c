@@ -69,7 +69,6 @@ void Graphics_init(void)
         printf("Failed to create renderer\n");
         exit(1);
     }
-    SDL_UpdateWindowSurface(window);
 }
 
 static uint16_t tileLineAt(uint16_t addr, uint16_t yOffset)
@@ -104,8 +103,6 @@ static void renderScanline()
     uint16_t tileMapIndex = scrollX / 8;
     uint16_t tileLine = tileLineAt(tileMapOffset + tileMapIndex, yOffset);
     uint8_t x = scrollX & 7;
-    // if (line % 10 == 0)
-    //     printf("line %d scrolledLine %d rowNo %d tileNo %d mapOffset %04x index %d\n", line, line + scrollY, (line + scrollY) / 8, ((line + scrollY) / 8) * 32, tileMapOffset, tileMapIndex);
     for (uint8_t i = 0; i < 160; i++)
     {
         uint8_t color = colorAt(tileLine, x);
