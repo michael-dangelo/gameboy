@@ -1,10 +1,9 @@
 #include "cpu.h"
 
+#include "debug.h"
 #include "memory.h"
 
 #include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 static struct
 {
@@ -26,11 +25,10 @@ static void setFlag(uint8_t val, uint8_t pos) { if (val) r.f |= (1 << pos); else
 static void setCY(uint8_t val) { setFlag(val, 4); }
 static void setZF(uint8_t val) { setFlag(val, 7); }
 
-// Debugging
 static void printCpu(void)
 {
-    printf("a: %02x b: %02x c: %02x d: %02x e: %02x h: %02x l: %02x f: %02x pc: %04x sp: %04x zf: %x cy: %x m: %x\n",
-        r.a, r.b, r.c, r.d, r.e, r.h, r.l, r.f, r.pc, r.sp, ZF(), CY(), r.m);
+    PRINT(("a: %02x b: %02x c: %02x d: %02x e: %02x h: %02x l: %02x f: %02x pc: %04x sp: %04x zf: %x cy: %x m: %x\n",
+        r.a, r.b, r.c, r.d, r.e, r.h, r.l, r.f, r.pc, r.sp, ZF(), CY(), r.m));
 }
 
 static void dispatch(uint8_t op);
@@ -38,9 +36,9 @@ static void dispatch(uint8_t op);
 static void step(void)
 {
     uint8_t op = Mem_rb(r.pc++);
-    // printf("op %02x\n", op);
+    PRINT(("op %02x\n", op));
     dispatch(op);
-    // printCpu();
+    printCpu();
 }
 
 // Main cpu loop
@@ -155,8 +153,8 @@ static void RES_nHLm(uint8_t n) { setHL(HL() & ~(1 << n)); r.m = 4; }
 static void NOP(void) { r.m = 1; }
 static void HALT(void) { assert(0); r.m = 1; }
 static void STOP(void) { assert(0); }
-static void DI(void) { printf("DI instructkon, not sure what do\n"); r.m = 1; }
-static void EI(void) { printf("EI instruction, not sure what do\n"); r.m = 1; }
+static void DI(void) { r.m = 1; assert(1); }
+static void EI(void) { r.m = 1; assert(1); }
 
 // Jumps
 static void JP_nn(void) { r.pc = Mem_rw(r.pc); r.m = 4; }
@@ -187,7 +185,7 @@ static void RST_n(uint8_t n) { CALL(n); r.m = 4; }
 static void CB_PREFIX()
 {
     uint8_t op = Mem_rb(r.pc++);
-    // printf("cb op %02x\n" , op);
+    PRINT(("cb op %02x\n" , op));
     switch(op)
     {
         case 0x00: RLC_r(&r.b); break;
@@ -446,7 +444,7 @@ static void CB_PREFIX()
         case 0xFD: SET_nr(6, &r.l); break;
         case 0xFE: SET_nHLm(6); break;
         case 0xFF: SET_nr(6, &r.a); break;
-        default: printf("unknown cb op %02x\n", op); assert(0);
+        default: assert(0);
     }
 }
 
@@ -699,6 +697,6 @@ static void dispatch(uint8_t op)
         case 0xFB: EI(); break;
         case 0xFE: CP_n(); break;
         case 0xFF: RST_n(0x38); break;
-        default: printf("unknown op %02x\n", op); assert(0);
+        default: assert(0);
     }
 }

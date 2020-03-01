@@ -1,7 +1,10 @@
 #include "graphics.h"
 
+#include "debug.h"
+
 #include "SDL/SDL.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -176,7 +179,6 @@ void Graphics_step(uint8_t ticks)
             exit(0);
     if (lcdDisplayEnable)
         step(ticks);
-    // printf("graphics - clock %d mode %d line %d\n", clock, mode, line);
 }
 
 uint8_t Graphics_rb(uint16_t addr)
@@ -184,8 +186,7 @@ uint8_t Graphics_rb(uint16_t addr)
     uint8_t res = 0;
     if (addr < 0xA000)
     {
-        addr -= 0x8000;
-        res = vram[addr];
+        res = vram[addr - 0x8000];
     }
     switch (addr)
     {
@@ -200,8 +201,7 @@ uint8_t Graphics_rb(uint16_t addr)
                   (bgDisplay);
             break;
         case 0xFF41:
-            printf("unhandled read from GPU status register");
-            exit(1);
+            assert(0);
             break;
         case 0xFF42:
             res = scrollY;
@@ -216,7 +216,7 @@ uint8_t Graphics_rb(uint16_t addr)
             res = palette;
             break;
     }
-    // printf("reading from gpu addr %02x val %02x\n", addr, res);
+    PRINT(("reading from gpu addr %02x val %02x\n", addr, res));
     return res;
 }
 
@@ -224,8 +224,7 @@ void Graphics_wb(uint16_t addr, uint8_t val)
 {
     if (addr < 0xA000)
     {
-        addr -= 0x8000;
-        vram[addr] = val;
+        vram[addr -= 0x8000] = val;
     }
     switch (addr)
     {
@@ -240,8 +239,7 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             bgDisplay = val & 1;
             break;
         case 0xFF41:
-            printf("unhandled write to GPU status register");
-            exit(1);
+            assert(0);
             break;
         case 0xFF42:
             scrollY = val;
@@ -250,12 +248,11 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             scrollX = val;
             break;
         case 0xFF44:
-            // Writing to the LCD Y-Coordinate register (line) resets the counter
             line = 0;
             break;
         case 0xFF47:
             palette = val;
             break;
     }
-    // printf("writing to gpu addr %04x val %02x\n", addr, val);
+    PRINT(("writing to gpu addr %04x val %02x\n", addr, val));
 }

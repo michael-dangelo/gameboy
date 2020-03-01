@@ -1,5 +1,6 @@
 #include "memory.h"
 
+#include "debug.h"
 #include "graphics.h"
 
 #include <assert.h>
@@ -119,7 +120,7 @@ uint8_t Mem_rb(uint16_t addr)
         location = strdup("interruptenable");
     }
     uint8_t val = mem[addr];
-    // printf("%s read byte at %04x, val %02x\n", location, addr, val);
+    PRINT(("%s read byte at %04x, val %02x\n", location, addr, val));
     free(location);
     return val;
 }
@@ -127,7 +128,7 @@ uint8_t Mem_rb(uint16_t addr)
 uint16_t Mem_rw(uint16_t addr)
 {
     uint16_t val = Mem_rb(addr) + ((uint16_t)Mem_rb(addr + 1) << 8);
-    // printf("mem read word at %04x, val %04x\n", addr, val);
+    PRINT(("mem read word at %04x, val %04x\n", addr, val));
     return val;
 }
 
@@ -185,7 +186,7 @@ void Mem_wb(uint16_t addr, uint8_t val)
     {
         location = strdup("interruptenable");
     }
-    // printf("%s write byte at %04x val %02x\n", location, addr, val);
+    PRINT(("%s write byte at %04x val %02x\n", location, addr, val));
     free(location);
     ram[addr] = val;
 }
@@ -194,5 +195,5 @@ void Mem_ww(uint16_t addr, uint16_t val)
 {
     Mem_wb(addr, val & 255);
     Mem_wb(addr + 1, val >> 8);
-    // printf("mem write word at %04x val %04x\n", addr, val);
+    PRINT(("mem write word at %04x val %04x\n", addr, val));
 }
