@@ -103,6 +103,26 @@ uint8_t Mem_rb(uint16_t addr)
         location = strdup("notusable");
         assert(0);
     }
+    else if (addr == 0xFF07)
+    {
+        location = strdup("timercontrol");
+    }
+    else if (addr == 0xFF0F)
+    {
+        location = strdup("interruptflag");
+    }
+    else if (addr == 0xFF24)
+    {
+        location = strdup("volumecontrol");
+    }
+    else if (addr == 0xFF25)
+    {
+        location = strdup("soundoutputselect");
+    }
+    else if (addr == 0xFF26)
+    {
+        location = strdup("soundenable");
+    }
     else if ((0xFF40 <= addr && addr <= 0xFF44) || addr == 0xFF47)
     {
         return Graphics_rb(addr);
@@ -169,6 +189,26 @@ void Mem_wb(uint16_t addr, uint8_t val)
     {
         location = strdup("notusable");
         assert(0);
+    }
+    else if (addr == 0xFF07)
+    {
+        location = strdup("timercontrol");
+    }
+    else if (addr == 0xFF0F)
+    {
+        location = strdup("interruptflag");
+    }
+    else if (addr == 0xFF24)
+    {
+        location = strdup("volumecontrol");
+    }
+    else if (addr == 0xFF25)
+    {
+        location = strdup("soundoutputselect");
+    }
+    else if (addr == 0xFF26)
+    {
+        location = strdup("soundenable");
     }
     else if ((0xFF40 <= addr && addr <= 0xFF44) || addr == 0xFF47)
     {
