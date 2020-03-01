@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+uint8_t enableDebugPrints = 0;
+
 int main(int argc, char **argv)
 {
     if (argc != 2)

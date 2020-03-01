@@ -27,7 +27,9 @@ static void setZF(uint8_t val) { setFlag(val, 7); }
 
 static void printCpu(void)
 {
-    PRINT(("a: %02x b: %02x c: %02x d: %02x e: %02x h: %02x l: %02x f: %02x pc: %04x sp: %04x zf: %x cy: %x m: %x\n",
+    CPU_PRINT(("a: %02x b: %02x c: %02x d: %02x e: %02x "
+               "h: %02x l: %02x f: %02x pc: %04x sp: %04x "
+               "zf: %x cy: %x m: %x\n",
         r.a, r.b, r.c, r.d, r.e, r.h, r.l, r.f, r.pc, r.sp, ZF(), CY(), r.m));
 }
 
@@ -36,8 +38,10 @@ static void dispatch(uint8_t op);
 static void step(void)
 {
     uint8_t op = Mem_rb(r.pc++);
-    PRINT(("op %02x\n", op));
+    CPU_PRINT(("op %02x\n", op));
     dispatch(op);
+    if (r.pc == 0xFC)
+        enableDebugPrints = 1;
     printCpu();
 }
 
@@ -185,7 +189,7 @@ static void RST_n(uint8_t n) { CALL(n); r.m = 4; }
 static void CB_PREFIX()
 {
     uint8_t op = Mem_rb(r.pc++);
-    PRINT(("cb op %02x\n" , op));
+    CPU_PRINT(("cb op %02x\n" , op));
     switch(op)
     {
         case 0x00: RLC_r(&r.b); break;

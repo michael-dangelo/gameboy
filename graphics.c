@@ -165,7 +165,9 @@ static void step(uint8_t ticks)
                 return;
             clock = 0;
             mode = HBLANK;
+#ifndef DISABLE_RENDER
             renderScanline();
+#endif
             break;
     }
     return;
@@ -216,7 +218,7 @@ uint8_t Graphics_rb(uint16_t addr)
             res = palette;
             break;
     }
-    PRINT(("reading from gpu addr %02x val %02x\n", addr, res));
+    GPU_PRINT(("reading from gpu addr %02x val %02x\n", addr, res));
     return res;
 }
 
@@ -224,7 +226,7 @@ void Graphics_wb(uint16_t addr, uint8_t val)
 {
     if (addr < 0xA000)
     {
-        vram[addr -= 0x8000] = val;
+        vram[addr - 0x8000] = val;
     }
     switch (addr)
     {
@@ -254,5 +256,5 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             palette = val;
             break;
     }
-    PRINT(("writing to gpu addr %04x val %02x\n", addr, val));
+    GPU_PRINT(("writing to gpu addr %04x val %02x\n", addr, val));
 }

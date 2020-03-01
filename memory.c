@@ -74,7 +74,7 @@ uint8_t Mem_rb(uint16_t addr)
         else
         {
             location = strdup("cartrom");
-       }
+        }
     }
     else if (msb < 0xA)
     {
@@ -120,7 +120,7 @@ uint8_t Mem_rb(uint16_t addr)
         location = strdup("interruptenable");
     }
     uint8_t val = mem[addr];
-    PRINT(("%s read byte at %04x, val %02x\n", location, addr, val));
+    MEM_PRINT(("%s read byte at %04x, val %02x\n", location, addr, val));
     free(location);
     return val;
 }
@@ -128,7 +128,7 @@ uint8_t Mem_rb(uint16_t addr)
 uint16_t Mem_rw(uint16_t addr)
 {
     uint16_t val = Mem_rb(addr) + ((uint16_t)Mem_rb(addr + 1) << 8);
-    PRINT(("mem read word at %04x, val %04x\n", addr, val));
+    MEM_PRINT(("mem read word at %04x, val %04x\n", addr, val));
     return val;
 }
 
@@ -138,7 +138,8 @@ void Mem_wb(uint16_t addr, uint8_t val)
     const uint8_t msb = (addr & 0xF000) >> 12;
     if (msb < 0x8)
     {
-        location = strdup("bootromcartrom");
+        location = addr <= 0x100 && inBootRom ? strdup("bootrom") : strdup("cartrom");
+        printf("attempted %s write at addr %04x val %02x\n", location, addr, val);
         assert(0);
     }
     else if (msb < 0xA)
@@ -174,6 +175,11 @@ void Mem_wb(uint16_t addr, uint8_t val)
         Graphics_wb(addr, val);
         return;
     }
+    else if (addr == 0xFF50)
+    {
+        location = strdup("disablebootromregister");
+        inBootRom = val;
+    }
     else if (addr < 0xFF80)
     {
         location = strdup("ioports");
@@ -186,7 +192,7 @@ void Mem_wb(uint16_t addr, uint8_t val)
     {
         location = strdup("interruptenable");
     }
-    PRINT(("%s write byte at %04x val %02x\n", location, addr, val));
+    MEM_PRINT(("%s write byte at %04x val %02x\n", location, addr, val));
     free(location);
     ram[addr] = val;
 }
@@ -195,5 +201,5 @@ void Mem_ww(uint16_t addr, uint16_t val)
 {
     Mem_wb(addr, val & 255);
     Mem_wb(addr + 1, val >> 8);
-    PRINT(("mem write word at %04x val %04x\n", addr, val));
+    MEM_PRINT(("mem write word at %04x val %04x\n", addr, val));
 }
