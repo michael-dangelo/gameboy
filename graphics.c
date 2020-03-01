@@ -13,6 +13,7 @@ static SDL_Surface *screen = NULL;
 static SDL_Renderer *renderer = NULL;
 
 static uint8_t vram[0x2000];
+static uint16_t clock = 0;
 
 typedef enum {
     HBLANK,
@@ -20,9 +21,6 @@ typedef enum {
     OAM,
     VRAM
 } Mode;
-
-static Mode mode = OAM;
-static uint16_t clock = 0;
 
 // FF40 - LCD control
 static uint8_t lcdDisplayEnable = 0;
@@ -33,6 +31,14 @@ static uint8_t bgTileMapSelect = 0;
 static uint8_t spriteSize = 0;
 static uint8_t spriteDisplayEnable = 0;
 static uint8_t bgDisplay = 0;
+static Mode mode = OAM;
+
+// FF41 - LCD status
+static uint8_t lineCompareInterruptEnable = 0;
+static uint8_t oamInterruptEnable = 0;
+static uint8_t vblankInterruptEnable = 0;
+static uint8_t hblankInterruptEnable = 0;
+static uint8_t lineCompareFlag = 0;
 
 // FF42 - Scroll Y
 static uint8_t scrollY = 0;
@@ -203,7 +209,12 @@ uint8_t Graphics_rb(uint16_t addr)
                   (bgDisplay);
             break;
         case 0xFF41:
-            assert(0);
+            res = (lineCompareInterruptEnable << 6) |
+                  (oamInterruptEnable << 5) |
+                  (vblankInterruptEnable << 4) |
+                  (hblankInterruptEnable << 3) |
+                  (lineCompareFlag << 2) |
+                  (mode & 3);
             break;
         case 0xFF42:
             res = scrollY;
@@ -241,7 +252,11 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             bgDisplay = val & 1;
             break;
         case 0xFF41:
-            assert(0);
+            lineCompareInterruptEnable = (val >> 6) & 1;
+            oamInterruptEnable = (val >> 5) & 1;
+            vblankInterruptEnable = (val >> 4) & 1;
+            hblankInterruptEnable = (val >> 3) & 1;
+            lineCompareFlag = (val >> 2) & 1;
             break;
         case 0xFF42:
             scrollY = val;
