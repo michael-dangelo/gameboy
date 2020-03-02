@@ -13,6 +13,28 @@ static struct
     uint8_t ime;
 } r;
 
+static void dispatch(uint8_t op);
+static const char *opName(uint8_t op);
+static const char *cbOpName(uint8_t op);
+static void printCpu(void);
+
+static uint16_t BREAK = 0xC243;
+
+uint8_t Cpu_step(void)
+{
+    CPU_PRINT(("--------------------------\n"));
+    uint8_t op = Mem_rb(r.pc++);
+    CPU_PRINT(("op %s [%02x]\n", opName(op), op));
+    dispatch(op);
+    if (r.pc == BREAK)
+        enableDebugPrints = 1;
+    printCpu();
+    r.t = r.m * 4;
+    return r.t;
+}
+
+// --- Instructions and op names ---
+
 // Helpers
 static uint16_t rr(uint8_t high, uint8_t low) { return ((uint16_t)high << 8) + low; }
 static uint16_t BC(void) { return rr(r.b, r.c); }
@@ -25,31 +47,6 @@ static void setHL(uint16_t val) { r.h = val >> 8; r.l = val & 0xFF; }
 static void setFlag(uint8_t val, uint8_t pos) { if (val) r.f |= (1 << pos); else r.f &= ~(1 << pos); }
 static void setCY(uint8_t val) { setFlag(val, 4); }
 static void setZF(uint8_t val) { setFlag(val, 7); }
-
-static void printCpu(void)
-{
-    CPU_PRINT(("a: %02x b: %02x c: %02x d: %02x e: %02x "
-               "h: %02x l: %02x f: %02x pc: %04x sp: %04x "
-               "zf: %d cy: %d m: %x ime %d\n",
-        r.a, r.b, r.c, r.d, r.e, r.h, r.l, r.f,
-        r.pc, r.sp, ZF(), CY(), r.m, r.ime));
-}
-
-static void dispatch(uint8_t op);
-static const char *opName(uint8_t op);
-static const char *cbOpName(uint8_t op);
-
-uint8_t Cpu_step(void)
-{
-    uint8_t op = Mem_rb(r.pc++);
-    CPU_PRINT(("op %s [%02x]\n", opName(op), op));
-    dispatch(op);
-    if (r.pc == 0x100)
-        enableDebugPrints = 1;
-    printCpu();
-    r.t = r.m * 4;
-    return r.t;
-}
 
 // 8-bit loads
 static void LD_rr(uint8_t *dest, uint8_t src) { *dest = src; r.m = 1; }
@@ -781,4 +778,13 @@ const char *opName(uint8_t op)
 const char *cbOpName(uint8_t op)
 {
     return cbOpNames[op];
+}
+
+static void printCpu(void)
+{
+    CPU_PRINT(("a: %02x b: %02x c: %02x d: %02x e: %02x "
+               "h: %02x l: %02x f: %02x pc: %04x sp: %04x "
+               "zf: %d cy: %d m: %x ime %d\n",
+        r.a, r.b, r.c, r.d, r.e, r.h, r.l, r.f,
+        r.pc, r.sp, ZF(), CY(), r.m, r.ime));
 }
