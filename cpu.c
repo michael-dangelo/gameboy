@@ -154,7 +154,7 @@ static void RES_nHLm(uint8_t n) { setHL(HL() & ~(1 << n)); r.m = 4; }
 // Control
 static void NOP(void) { r.m = 1; }
 static void HALT(void) { assert(0); r.m = 1; }
-static void STOP(void) { assert(0); }
+static void STOP(void) { Mem_rb(r.pc++); assert(0); }
 static void DI(void) { r.ime = 0; r.m = 1; }
 static void EI(void) { r.ime = 1; r.m = 1; }
 
@@ -197,7 +197,7 @@ static void CB_PREFIX()
         case 0x04: RLC_r(&r.h); break;
         case 0x05: RLC_r(&r.l); break;
         case 0x06: RLC_HLm(); break;
-        case 0x07: RLC_r(&r.a); setZF(r.a == 0); break;
+        case 0x07: RLC_r(&r.a); break;
         case 0x08: RRC_r(&r.b); break;
         case 0x09: RRC_r(&r.c); break;
         case 0x0A: RRC_r(&r.d); break;
@@ -205,7 +205,7 @@ static void CB_PREFIX()
         case 0x0C: RRC_r(&r.h); break;
         case 0x0D: RRC_r(&r.l); break;
         case 0x0E: RRC_HLm(); break;
-        case 0x0F: RRC_r(&r.a); setZF(r.a == 0); break;
+        case 0x0F: RRC_r(&r.a); break;
         case 0x10: RL_r(&r.b); break;
         case 0x11: RL_r(&r.c); break;
         case 0x12: RL_r(&r.d); break;
@@ -213,7 +213,7 @@ static void CB_PREFIX()
         case 0x14: RL_r(&r.h); break;
         case 0x15: RL_r(&r.l); break;
         case 0x16: RL_HLm(); break;
-        case 0x17: RL_r(&r.a); setZF(r.a == 0); break;
+        case 0x17: RL_r(&r.a); break;
         case 0x18: RR_r(&r.b); break;
         case 0x19: RR_r(&r.c); break;
         case 0x1A: RR_r(&r.d); break;
@@ -221,7 +221,7 @@ static void CB_PREFIX()
         case 0x1C: RR_r(&r.h); break;
         case 0x1D: RR_r(&r.l); break;
         case 0x1E: RR_HLm(); break;
-        case 0x1F: RR_r(&r.a); setZF(r.a == 0); break;
+        case 0x1F: RR_r(&r.a); break;
         case 0x20: SLA_r(&r.b); break;
         case 0x21: SLA_r(&r.c); break;
         case 0x22: SLA_r(&r.d); break;
@@ -470,7 +470,7 @@ static void dispatch(uint8_t op)
         case 0x0D: DEC_r(&r.c); break;
         case 0x0E: LD_rn(&r.c); break;
         case 0x0F: RRCA(); break;
-        case 0x10: Mem_rb(r.pc++); STOP(); break;
+        case 0x10: STOP(); break;
         case 0x11: LD_rrnn(&r.d, &r.e); break;
         case 0x12: LD_rrmA(DE()); break;
         case 0x13: INC_rr(&r.d, &r.e); break;
