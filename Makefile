@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-Wall -Wextra -Werror -Iinclude/
 DEPS=cpu.h memory.h graphics.h
-OBJ=main.o cpu.o memory.o graphics.o
+OBJ=main.o cpu.o memory.o graphics.o ops.o
 
 bin/linux/main: $(OBJ)
 	mkdir -p bin/linux

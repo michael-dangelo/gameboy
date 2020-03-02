@@ -2,6 +2,7 @@
 
 #include "debug.h"
 #include "memory.h"
+#include "ops.h"
 
 #include <assert.h>
 
@@ -40,7 +41,7 @@ static void dispatch(uint8_t op);
 static void step(void)
 {
     uint8_t op = Mem_rb(r.pc++);
-    CPU_PRINT(("op %02x\n", op));
+    CPU_PRINT(("op %s [%02x]\n", opName(op), op));
     dispatch(op);
     if (r.pc == 0x100)
         enableDebugPrints = 1;
@@ -191,7 +192,7 @@ static void RST_n(uint8_t n) { CALL(n); r.m = 4; }
 static void CB_PREFIX()
 {
     uint8_t op = Mem_rb(r.pc++);
-    CPU_PRINT(("cb op %02x\n" , op));
+    CPU_PRINT(("cb op %s [%02x]\n" , cbOpName(op), op));
     switch(op)
     {
         case 0x00: RLC_r(&r.b); break;

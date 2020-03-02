@@ -80,6 +80,7 @@ void Graphics_init(void)
     }
 }
 
+#ifndef DISABLE_RENDER
 static uint16_t tileLineAt(uint16_t addr, uint16_t yOffset)
 {
     uint16_t tile = tileDataSelect ? (uint16_t)vram[addr] * 16
@@ -134,6 +135,7 @@ static void renderScanline()
         SDL_RenderDrawPoints(renderer, points, count);
     }
 }
+#endif
 
 static void step(uint8_t ticks)
 {
