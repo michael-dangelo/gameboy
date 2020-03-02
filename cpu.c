@@ -711,7 +711,7 @@ const char *opNames[256] = {
     "JR NZ,r8", "LD HL,d16", "LDI (HL),A", "INC HL", "INC H", "DEC H", "LD H,d8", "DAA",
     "JR Z,r8", "ADD HL,HL", "LDI A,(HL)", "DEC HL", "INC L", "DEC L", "LD L,d8", "CPL",
     "JR NC,r8", "LD SP,d16", "LDD (HL),A", "INC SP", "INC (HL)", "DEC (HL)", "LD (HL),d8", "SCF",
-    "JR C,r8", "ADD HL,SP", "LDD A,(HL)", "DEC SP", "INC A", "DEC A", "LD A,d8", "CCF"
+    "JR C,r8", "ADD HL,SP", "LDD A,(HL)", "DEC SP", "INC A", "DEC A", "LD A,d8", "CCF",
     "LD B,B", "LD B,C", "LD B,D", "LD B,E", "LD B,H", "LD B,L", "LD B,(HL)", "LD B,A",
     "LD C,B", "LD C,C", "LD C,D", "LD C,E", "LD C,H", "LD C,L", "LD C,(HL)", "LD C,A",
     "LD D,B", "LD D,C", "LD D,D", "LD D,E", "LD D,H", "LD D,L", "LD D,(HL)", "LD D,A",
