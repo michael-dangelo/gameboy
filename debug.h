@@ -11,6 +11,7 @@ extern uint8_t enableDebugPrints;
 #define DEBUG_GRAPHICS
 // #define DEBUG_TILES
 // #define DISABLE_RENDER
+#define SKIP_BOOTROM
 
 #ifdef DEBUG
 #define PRINT(x) if (enableDebugPrints) printf x

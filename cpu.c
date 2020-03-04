@@ -22,6 +22,10 @@ static uint16_t BREAK = 0xc01c;
 
 uint8_t Cpu_step(void)
 {
+#ifdef SKIP_BOOTROM
+    if (r.pc == 0)
+        r.pc = 0x100;
+#endif
     CPU_PRINT(("--------------------------\n"));
     uint8_t op = Mem_rb(r.pc++);
     CPU_PRINT(("op %s [%02x]\n", opName(op), op));
