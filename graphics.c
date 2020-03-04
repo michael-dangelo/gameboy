@@ -96,12 +96,14 @@ void Graphics_init(void)
 #endif
 }
 
-#ifndef DISABLE_RENDER
+#if !defined(DISABLE_RENDER) | defined(DEBUG_TILES)
 static uint16_t tileLineAt(uint16_t addr, uint16_t yOffset)
 {
     uint16_t tile = tileDataSelect ? (uint16_t)vram[addr] * 16
                                    : 0x1000 + ((int16_t)vram[addr] * 16);
+    GPU_PRINT(("tile at %04x\n", tile + 0x8000));
     uint16_t pixels = tile + yOffset;
+    GPU_PRINT(("adding yOffset %04x to get pixels at %04x\n", yOffset, pixels + 0x8000));
     return vram[pixels] + ((uint16_t)vram[pixels + 1] << 8);
 }
 
@@ -111,7 +113,9 @@ static uint8_t colorAt(uint16_t tileLine, uint8_t x)
     uint8_t h = tileLine & 0xFF;
     uint8_t pixelOffset = 7 - x; // leftmost pixel is 7th bit
     uint8_t colorIndex = ((l >> pixelOffset) & 1) | (((h >> pixelOffset) & 1) << 1);
-    uint8_t color = (palette >> colorIndex) & 3;
+    uint8_t color = (palette >> (colorIndex * 2)) & 3;
+    GPU_PRINT(("x %02x offset %02x colorIndex %02x palettedColor %02x\n",
+        x, pixelOffset, colorIndex, color));
     return color;
 }
 
@@ -120,10 +124,12 @@ static void renderScanline()
     int colorIndex[4] = {0};
     SDL_Point colorPoints[4][160] = {0};
     uint16_t tileMap = bgTileMapSelect ? 0x1C00 : 0x1800;
-    uint16_t tileMapOffset = tileMap + (((line + scrollY) / 8) * 32);
+    GPU_PRINT(("line %02x scroll %02x line + scrollY %02x\n", line, scrollY, line + scrollY));
+    uint16_t tileMapOffset = tileMap + (((uint8_t)(line + scrollY) / 8) * 32);
     uint16_t yOffset = ((line + scrollY) & 7) * 2;
     uint16_t tileMapIndex = scrollX / 8;
     uint16_t tileLine = tileLineAt(tileMapOffset + tileMapIndex, yOffset);
+    GPU_PRINT(("tile map at %04x pixels %04x\n", tileMapOffset + tileMapIndex + 0x8000, tileLine));
     uint8_t x = scrollX & 7;
     for (uint8_t i = 0; i < 160; i++)
     {
@@ -139,6 +145,7 @@ static void renderScanline()
             x = 0;
             tileMapIndex++;
             tileLine = tileLineAt(tileMapOffset + tileMapIndex, yOffset);
+            GPU_PRINT(("tile map at %04x pixels %04x\n", tileMapOffset + tileMapIndex + 0x8000, tileLine));
         }
     }
     for (uint8_t i = 0; i < 4; i++)
@@ -203,7 +210,7 @@ void drawDebugTiles(void)
 {
     // only draw a few frames, expensive
     frameCount++;
-    static uint16_t framesPerRender = 40000;
+    static uint16_t framesPerRender = 1000;
     if (frameCount % framesPerRender)
         return;
 
@@ -215,6 +222,7 @@ void drawDebugTiles(void)
         uint16_t tileMapOffset = tileMap + ((line_ / 8) * 32);
         uint16_t yOffset = (line_ & 7) * 2;
         uint16_t tileMapIndex = 0;
+        GPU_PRINT(("tile map at %04x pixels %04x\n", tileMapOffset + tileMapIndex + 0x8000, tileLine));
         uint16_t tileLine = tileLineAt(tileMapOffset + tileMapIndex, yOffset);
         uint8_t x = 0;
         for (uint16_t i = 0; i < 256; i++)
@@ -230,6 +238,7 @@ void drawDebugTiles(void)
             {
                 x = 0;
                 tileMapIndex++;
+                GPU_PRINT(("tile map at %04x pixels %04x\n", tileMapOffset + tileMapIndex + 0x8000, tileLine));
                 tileLine = tileLineAt(tileMapOffset + tileMapIndex, yOffset);
             }
         }
@@ -307,9 +316,8 @@ uint8_t Graphics_rb(uint16_t addr)
 void Graphics_wb(uint16_t addr, uint8_t val)
 {
     if (addr < 0xA000)
-    {
         vram[addr - 0x8000] = val;
-    }
+
     switch (addr)
     {
         case 0xFF40:
