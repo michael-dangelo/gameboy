@@ -309,7 +309,7 @@ uint8_t Graphics_rb(uint16_t addr)
             res = palette;
             break;
     }
-    GPU_PRINT(("reading from gpu addr %02x val %02x\n", addr, res));
+    MEM_PRINT(("reading from gpu addr %02x val %02x\n", addr, res));
     return res;
 }
 
@@ -350,5 +350,5 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             palette = val;
             break;
     }
-    GPU_PRINT(("writing to gpu addr %04x val %02x\n", addr, val));
+    MEM_PRINT(("writing to gpu addr %04x val %02x\n", addr, val));
 }
