@@ -50,6 +50,8 @@ static uint8_t ZF(void) { return (r.f >> 7) & 1; }
 static void setHL(uint16_t val) { r.h = val >> 8; r.l = val & 0xFF; }
 static void setFlag(uint8_t val, uint8_t pos) { if (val) r.f |= (1 << pos); else r.f &= ~(1 << pos); }
 static void setCY(uint8_t val) { setFlag(val, 4); }
+static void setH(uint8_t val) { setFlag(val, 5); }
+static void setN(uint8_t val) { setFlag(val, 6); }
 static void setZF(uint8_t val) { setFlag(val, 7); }
 
 // 8-bit loads
@@ -145,7 +147,7 @@ static void SRL_r(uint8_t *reg) { uint8_t v = *reg & 1; *reg >>= 1; setZF(*reg =
 static void SRL_HLm(void) { uint8_t v = Mem_rb(HL()) & 1; Mem_wb(HL(), Mem_rb(HL()) >> 1); setZF(Mem_rb(HL()) == 0); setCY(v == 1); r.m = 4; }
 
 // Single-bit
-static void BIT_nr(uint8_t n, uint8_t *reg) { setZF(!((*reg >> n) & 1)); r.m = 2; }
+static void BIT_nr(uint8_t n, uint8_t *reg) { setZF(!((*reg >> n) & 1)); r.m = 2; setN(0); setH(1); }
 static void BIT_nHLm(uint8_t n) { setZF(!((Mem_rb(HL()) >> n) & 1)); r.m = 3; }
 static void SET_nr(uint8_t n, uint8_t *reg) { *reg |= 1 << n; r.m = 2; }
 static void SET_nHLm(uint8_t n) { Mem_wb(HL(), Mem_rb(HL()) | 1 << n); r.m = 4; }
@@ -431,22 +433,22 @@ static void CB_PREFIX()
         case 0xED: SET_nr(5, &r.l); break;
         case 0xEE: SET_nHLm(5); break;
         case 0xEF: SET_nr(5, &r.a); break;
-        case 0xF0: SET_nr(5, &r.b); break;
-        case 0xF1: SET_nr(5, &r.c); break;
-        case 0xF2: SET_nr(5, &r.d); break;
-        case 0xF3: SET_nr(5, &r.e); break;
-        case 0xF4: SET_nr(5, &r.h); break;
-        case 0xF5: SET_nr(5, &r.l); break;
-        case 0xF6: SET_nHLm(5); break;
-        case 0xF7: SET_nr(5, &r.a); break;
-        case 0xF8: SET_nr(6, &r.b); break;
-        case 0xF9: SET_nr(6, &r.c); break;
-        case 0xFA: SET_nr(6, &r.d); break;
-        case 0xFB: SET_nr(6, &r.e); break;
-        case 0xFC: SET_nr(6, &r.h); break;
-        case 0xFD: SET_nr(6, &r.l); break;
-        case 0xFE: SET_nHLm(6); break;
-        case 0xFF: SET_nr(6, &r.a); break;
+        case 0xF0: SET_nr(6, &r.b); break;
+        case 0xF1: SET_nr(6, &r.c); break;
+        case 0xF2: SET_nr(6, &r.d); break;
+        case 0xF3: SET_nr(6, &r.e); break;
+        case 0xF4: SET_nr(6, &r.h); break;
+        case 0xF5: SET_nr(6, &r.l); break;
+        case 0xF6: SET_nHLm(6); break;
+        case 0xF7: SET_nr(6, &r.a); break;
+        case 0xF8: SET_nr(7, &r.b); break;
+        case 0xF9: SET_nr(7, &r.c); break;
+        case 0xFA: SET_nr(7, &r.d); break;
+        case 0xFB: SET_nr(7, &r.e); break;
+        case 0xFC: SET_nr(7, &r.h); break;
+        case 0xFD: SET_nr(7, &r.l); break;
+        case 0xFE: SET_nHLm(7); break;
+        case 0xFF: SET_nr(7, &r.a); break;
         default: assert(0);
     }
 }
