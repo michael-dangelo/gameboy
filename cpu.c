@@ -123,18 +123,18 @@ static void DEC_SP(void) { r.sp--; r.m = 2; }
 static void ADD_SPdd(void) { int8_t d = Mem_rb(r.pc++); r.sp += d; setZF(0); setCY(d > 0 ? (uint8_t)(r.sp - d) > r.sp : (uint8_t)(r.sp + d) < r.sp); r.m = 4; }
 
 // Rotate/shift
-static void RLCA(void) { uint8_t v = (r.a >> 7) & 1; r.a <<= 1; r.a |= v; setZF(0); setCY(v == 1); r.m = 1; }
-static void RLC_r(uint8_t *reg) { uint8_t v = (*reg >> 7) & 1; *reg <<= 1; *reg |= v; setZF(*reg == 0); setCY(v == 1); r.m = 2; }
-static void RLC_HLm(void) { uint8_t m = Mem_rb(HL()); uint8_t v = (m >> 7) & 1; m <<= 1; m |= v; Mem_wb(HL(), m); setZF(Mem_rb(HL()) == 0); setCY(v == 1); r.m = 4; }
-static void RLA(void) { uint8_t v = CY(); setCY((r.a >> 7) & 1); r.a <<= 1; r.a |= v; setZF(0); setCY(v == 1); r.m = 1; }
+static void RLCA(void) { uint8_t v = (r.a >> 7) & 1; r.a <<= 1; r.a |= v; setZF(0); setCY(v); r.m = 1; }
+static void RLC_r(uint8_t *reg) { uint8_t v = (*reg >> 7) & 1; *reg <<= 1; *reg |= v; setZF(*reg == 0); setCY(v); r.m = 2; }
+static void RLC_HLm(void) { uint8_t m = Mem_rb(HL()); uint8_t v = (m >> 7) & 1; m <<= 1; m |= v; Mem_wb(HL(), m); setZF(m == 0); setCY(v); r.m = 4; }
+static void RLA(void) { uint8_t v = CY(); setCY((r.a >> 7) & 1); r.a <<= 1; r.a |= v; setZF(0); r.m = 1; }
 static void RL_r(uint8_t *reg) { uint8_t v = CY(); setCY((*reg >> 7) & 1); *reg <<= 1; *reg |= v; setZF(*reg == 0); r.m = 2; };
-static void RL_HLm(void) { uint8_t m = Mem_rb(HL()); uint8_t v = CY(); setCY((m >> 7) & 1); m <<= 1; m |= v; Mem_wb(HL(), m); setZF(Mem_rb(HL()) == 0); r.m = 4; }
+static void RL_HLm(void) { uint8_t m = Mem_rb(HL()); uint8_t v = CY(); setCY((m >> 7) & 1); m <<= 1; m |= v; Mem_wb(HL(), m); setZF(m == 0); r.m = 4; }
 static void RRCA(void) { uint8_t v = r.a & 1; r.a >>= 1; r.a |= v << 7; setZF(0); setCY(v == 1); r.m = 1; }
 static void RRC_r(uint8_t *reg) { uint8_t v = *reg & 1; *reg >>= 1; *reg |= v << 7; setZF(*reg == 0); setCY(v == 1); r.m = 2; }
-static void RRC_HLm(void) { uint8_t m = Mem_rb(HL()); uint8_t v = m & 1; m >>= 1; m |= v << 7; Mem_wb(HL(), m); setZF(Mem_rb(HL()) == 0); setCY(v == 1); r.m = 4; }
-static void RRA(void) { uint8_t v = CY(); setCY(r.a & 1); r.a >>= 1; r.a |= v << 7; setZF(0); setCY(v == 1); r.m = 1; }
+static void RRC_HLm(void) { uint8_t m = Mem_rb(HL()); uint8_t v = m & 1; m >>= 1; m |= v << 7; Mem_wb(HL(), m); setZF(m == 0); setCY(v == 1); r.m = 4; }
+static void RRA(void) { uint8_t v = CY(); setCY(r.a & 1); r.a >>= 1; r.a |= v << 7; setZF(0); r.m = 1; }
 static void RR_r(uint8_t *reg) { uint8_t v = CY(); setCY(*reg & 1); *reg >>= 1; *reg |= v << 7; setZF(*reg == 0); r.m = 2; }
-static void RR_HLm(void) { uint8_t m = Mem_rb(HL()); uint8_t v = CY(); setCY(m & 1); m >>= 1; m |= v << 7; Mem_wb(HL(), m); setZF(Mem_rb(HL()) == 0); r.m = 4; }
+static void RR_HLm(void) { uint8_t m = Mem_rb(HL()); uint8_t v = CY(); setCY(m & 1); m >>= 1; m |= v << 7; Mem_wb(HL(), m); setZF(m == 0); r.m = 4; }
 static void SLA_r(uint8_t *reg) { uint8_t v = *reg & (1 << 7); *reg <<= 1; setZF(*reg == 0); setCY(v == 1); r.m = 2; }
 static void SLA_HLm(void) { uint8_t v = Mem_rb(HL()) & (1 << 7); Mem_wb(HL(), Mem_rb(HL()) << 1); setZF(Mem_rb(HL()) == 0); setCY(v == 1); r.m = 4;  }
 static void SRA_r(uint8_t *reg) { uint8_t v = *reg & (1 << 7); *reg >>= 1; *reg |= v; setZF(*reg == 0); setCY(0); r.m = 2; }
