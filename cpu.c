@@ -102,9 +102,9 @@ static void XOR_HLm(void) { r.a ^= Mem_rb(HL()); setZF(r.a == 0); setCY(0); r.m 
 static void OR_r(uint8_t src) { r.a |= src; setZF(r.a == 0); setCY(0); r.m = 1; }
 static void OR_n(void) { r.a |= Mem_rb(r.pc++); setZF(r.a == 0); setCY(0); r.m = 2; }
 static void OR_HLm(void) { r.a |= Mem_rb(HL()); setZF(r.a == 0); setCY(0); r.m = 2; }
-static void CP_r(uint8_t src) { uint8_t n = r.a - src; setZF(n == 0); setCY((uint8_t)(r.a - src) > r.a); r.m = 1; }
-static void CP_n(void) { uint8_t n = Mem_rb(r.pc++); setZF(r.a - n == 0); setCY((uint8_t)(r.a + n) > r.a); r.m = 2; }
-static void CP_HLm(void) { uint8_t n = Mem_rb(HL()); setZF(r.a - n == 0); setCY((uint8_t)(r.a + n) > r.a); r.m = 2; }
+static void CP_r(uint8_t src) { uint8_t n = r.a - src; setZF(n == 0); setCY(n > r.a); r.m = 1; }
+static void CP_n(void) { uint8_t n = r.a - Mem_rb(r.pc++); setZF(n == 0); setCY(n > r.a); r.m = 2; }
+static void CP_HLm(void) { uint8_t n = Mem_rb(HL()); setZF(n == 0); setCY(n > r.a); r.m = 2; }
 static void INC_r(uint8_t *src) { (*src)++; setZF(*src == 0); r.m = 1; }
 static void INC_HLm(void) { Mem_wb(HL(), Mem_rb(HL()) + 1); setZF(Mem_rb(HL()) == 0); r.m = 3; }
 static void DEC_r(uint8_t *src) { (*src)--; setZF(*src == 0); r.m = 1; }
