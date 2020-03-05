@@ -21,6 +21,8 @@ static SDL_Renderer *debug_renderer = NULL;
 static uint8_t vram[0x2000];
 static uint16_t clock = 0;
 
+static uint8_t s_scale = 3;
+
 typedef enum {
     HBLANK,
     VBLANK,
@@ -66,7 +68,9 @@ void Graphics_init(void)
         exit(1);
     }
     atexit(SDL_Quit);
-    window = SDL_CreateWindow("Gameboy", 300, 300, 160, 144, 0);
+    window = SDL_CreateWindow(
+        "Gameboy", 500, 250,  160 * s_scale, 144 * s_scale, 0
+    );
     if (!window)
     {
         printf("Failed to create SDL window\n");
@@ -84,6 +88,7 @@ void Graphics_init(void)
         printf("Failed to create renderer\n");
         exit(1);
     }
+    SDL_RenderSetScale(renderer, s_scale, s_scale);
 #ifdef DEBUG_TILES
     debug_window = SDL_CreateWindow("Debug Tilemap", 700, 300, 256, 256, 0);
     debug_screen = SDL_GetWindowSurface(debug_window);
@@ -150,7 +155,7 @@ static void renderScanline()
     }
     for (uint8_t i = 0; i < 4; i++)
     {
-        static uint8_t colors[4] = {235, 192, 96, 0};
+        static uint8_t colors[4] = {220, 192, 96, 0};
         uint8_t color = colors[i];
         SDL_SetRenderDrawColor(renderer, color, color, color, 255);
         SDL_Point *points = colorPoints[i];
