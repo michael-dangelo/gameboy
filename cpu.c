@@ -115,12 +115,12 @@ static void SCF(void) { setCY(1); r.m = 1; }
 static void CCF(void) { setCY(CY() ^ 1); r.m = 1; }
 
 // 16-bit arithmetic/logical
-static void ADD_HLrr(uint16_t src) { setHL(HL() + src); setCY((uint8_t)(HL() - src) > HL()); r.m = 2; }
+static void ADD_HLrr(uint16_t src) { setHL(HL() + src); setCY((uint16_t)(HL() - src) > HL()); r.m = 2; }
 static void INC_rr(uint8_t *high, uint8_t *low) { (*low)++; if (!*low) (*high)++; r.m = 2; }
 static void INC_SP(void) { r.sp++; r.m = 2; }
 static void DEC_rr(uint8_t *high, uint8_t *low) { if (!*low) (*high)--; (*low)--; r.m = 2; }
 static void DEC_SP(void) { r.sp--; r.m = 2; }
-static void ADD_SPdd(void) { int8_t d = Mem_rb(r.pc++); r.sp += d; setZF(0); setCY(d > 0 ? (uint8_t)(r.sp - d) > r.sp : (uint8_t)(r.sp + d) < r.sp); r.m = 4; }
+static void ADD_SPdd(void) { int8_t d = Mem_rb(r.pc++); r.sp += d; setZF(0); setCY(d > 0 ? (uint16_t)(r.sp - d) > r.sp : (uint16_t)(r.sp + d) < r.sp); r.m = 4; }
 
 // Rotate/shift
 static void RLCA(void) { uint8_t v = (r.a >> 7) & 1; r.a <<= 1; r.a |= v; setZF(0); setCY(v); r.m = 1; }
