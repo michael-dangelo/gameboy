@@ -53,6 +53,8 @@ static void setCY(uint8_t val) { setFlag(val, 4); }
 static void setH(uint8_t val) { setFlag(val, 5); }
 static void setN(uint8_t val) { setFlag(val, 6); }
 static void setZF(uint8_t val) { setFlag(val, 7); }
+static uint8_t HCAdd(uint8_t a, uint8_t b) { return (((a & 0xF) + (b & 0xF)) & 0x10) == 0x10; }
+static uint8_t HCSub(uint8_t a, uint8_t b) { return ((uint8_t)((a & 0xF) - (b & 0xF)) > (a & 0xF)); }
 
 // 8-bit loads
 static void LD_rr(uint8_t *dest, uint8_t src) { *dest = src; r.m = 1; }
@@ -84,28 +86,28 @@ static void POP(uint8_t *high, uint8_t *low) { uint16_t w = Mem_rw(r.sp); *low =
 
 // 8-bit arithmetic/logical
 static void ADD_r(uint8_t src) { r.a += src; setZF(r.a == 0); setCY((uint8_t)(r.a - src) > r.a); r.m = 1; }
-static void ADD_n(void) { uint8_t n = Mem_rb(r.pc++); r.a += n; setZF(r.a == 0); setCY((uint8_t)(r.a - n) > r.a); r.m = 2; }
+static void ADD_n(void) { uint8_t n = Mem_rb(r.pc++); setH(HCAdd(r.a, n)); r.a += n; setZF(r.a == 0); setCY((uint8_t)(r.a - n) > r.a); setN(0); r.m = 2; }
 static void ADD_HLm(void) { uint8_t n = Mem_rb(HL()); r.a += n; setZF(r.a == 0); setCY((uint8_t)(r.a - n) > r.a); r.m = 2; }
 static void ADC_r(uint8_t src) { uint8_t n = src + CY(); r.a += n; setZF(r.a == 0); setCY((uint8_t)(r.a - n) > r.a); r.m = 1; }
 static void ADC_n(void) { uint8_t n = Mem_rb(r.pc++) + CY(); r.a += n; setZF(r.a == 0); setCY((uint8_t)(r.a - n) > r.a); r.m = 2; }
 static void ADC_HLm(void) { uint8_t n = Mem_rb(HL()) + CY(); r.a += n; setZF(r.a == 0); setCY((uint8_t)(r.a - n) > r.a); r.m = 2; }
 static void SUB_r(uint8_t src) { r.a -= src; setZF(r.a == 0); setCY((uint8_t)(r.a + src) < r.a); r.m = 1; }
-static void SUB_n(void) { uint8_t n = Mem_rb(r.pc++); r.a -= n; setZF(r.a == 0); setCY((uint8_t)(r.a + n) < r.a); r.m = 2; }
+static void SUB_n(void) { uint8_t n = Mem_rb(r.pc++); setH(HCSub(r.a, n)); r.a -= n; setZF(r.a == 0); setCY((uint8_t)(r.a + n) < r.a); setN(1); r.m = 2; }
 static void SUB_HLm(void) { uint8_t n = Mem_rb(HL()); r.a -= n; setZF(r.a == 0); setCY((uint8_t)(r.a + n) < r.a); r.m = 2; }
 static void SBC_r(uint8_t src) { uint8_t n = src + CY(); r.a -= n; setZF(r.a == 0); setCY((uint8_t)(r.a + n) < r.a); r.m = 1; }
-static void SBC_n(void) { uint8_t n = Mem_rb(r.pc++) + CY(); r.a -= n; setZF(r.a == 0); setCY((uint8_t)(r.a + n) < r.a); r.m = 2; }
+static void SBC_n(void) { uint8_t n = Mem_rb(r.pc++) + CY(); setH(HCSub(r.a, n)); r.a -= n; setZF(r.a == 0); setCY((uint8_t)(r.a + n) < r.a); setN(1); r.m = 2; }
 static void SBC_HLm(void) { uint8_t n = Mem_rb(HL()) + CY(); r.a -= n; setZF(r.a == 0); setCY((uint8_t)(r.a + n) < r.a); r.m = 2; }
 static void AND_r(uint8_t src) { r.a &= src; setZF(r.a == 0); setCY(0); r.m = 1; }
-static void AND_n(void) { r.a &= Mem_rb(r.pc++); setZF(r.a == 0); setCY(0); r.m = 2; }
+static void AND_n(void) { r.a &= Mem_rb(r.pc++); setZF(r.a == 0); setCY(0); setN(0); setH(1); r.m = 2; }
 static void AND_HLm(void) { r.a &= Mem_rb(HL()); setZF(r.a == 0); setCY(0); r.m = 2; }
 static void XOR_r(uint8_t src) { r.a ^= src; setZF(r.a == 0); setCY(0); r.m = 1; }
-static void XOR_n(void) { r.a ^= Mem_rb(r.pc++); setZF(r.a == 0); setCY(0); r.m = 2; }
+static void XOR_n(void) { r.a ^= Mem_rb(r.pc++); setZF(r.a == 0); setCY(0); setN(0); setH(0); r.m = 2; }
 static void XOR_HLm(void) { r.a ^= Mem_rb(HL()); setZF(r.a == 0); setCY(0); r.m = 2; }
 static void OR_r(uint8_t src) { r.a |= src; setZF(r.a == 0); setCY(0); r.m = 1; }
-static void OR_n(void) { r.a |= Mem_rb(r.pc++); setZF(r.a == 0); setCY(0); r.m = 2; }
+static void OR_n(void) { r.a |= Mem_rb(r.pc++); setZF(r.a == 0); setCY(0); setN(0); setH(0); r.m = 2; }
 static void OR_HLm(void) { r.a |= Mem_rb(HL()); setZF(r.a == 0); setCY(0); r.m = 2; }
 static void CP_r(uint8_t src) { uint8_t n = r.a - src; setZF(n == 0); setCY(n > r.a); r.m = 1; }
-static void CP_n(void) { uint8_t n = r.a - Mem_rb(r.pc++); setZF(n == 0); setCY(n > r.a); r.m = 2; }
+static void CP_n(void) { uint8_t n = Mem_rb(r.pc++); setH(HCSub(r.a, n)); setZF(r.a - n == 0); setCY((uint8_t)(r.a - n) > r.a); setN(1); r.m = 2; }
 static void CP_HLm(void) { uint8_t n = r.a - Mem_rb(HL()); setZF(n == 0); setCY(n > r.a); r.m = 2; }
 static void INC_r(uint8_t *src) { (*src)++; setZF(*src == 0); r.m = 1; }
 static void INC_HLm(void) { Mem_wb(HL(), Mem_rb(HL()) + 1); setZF(Mem_rb(HL()) == 0); r.m = 3; }
