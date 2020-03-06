@@ -54,7 +54,7 @@ static void setH(uint8_t val) { setFlag(val, 5); }
 static void setN(uint8_t val) { setFlag(val, 6); }
 static void setZF(uint8_t val) { setFlag(val, 7); }
 static uint8_t HCAdd(uint8_t a, uint8_t b) { return (((a & 0xF) + (b & 0xF)) & 0x10) == 0x10; }
-static uint8_t HCSub(uint8_t a, uint8_t b) { return ((uint8_t)((a & 0xF) - (b & 0xF)) > (a & 0xF)); }
+static uint8_t HCSub(uint8_t a, uint8_t b) { return (a & 0xF) < (b & 0xF); }
 
 // 8-bit loads
 static void LD_rr(uint8_t *dest, uint8_t src) { *dest = src; r.m = 1; }
