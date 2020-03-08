@@ -121,7 +121,7 @@ static void SCF(void) { setCY(1); setN(0); setH(0); r.m = 1; }
 static void CCF(void) { setCY(CY() ^ 1); setN(0); setH(0); r.m = 1; }
 
 // 16-bit arithmetic/logical
-static void ADD_HLrr(uint16_t src) { setHL(HL() + src); setCY((uint16_t)(HL() - src) > HL()); r.m = 2; }
+static void ADD_HLrr(uint16_t src) { setH((HL() & 0xfff) + (src & 0xfff) >= 0x1000); setHL(HL() + src); setCY((uint16_t)(HL() - src) > HL()); setN(0); r.m = 2; }
 static void INC_rr(uint8_t *high, uint8_t *low) { (*low)++; if (!*low) (*high)++; r.m = 2; }
 static void INC_SP(void) { r.sp++; r.m = 2; }
 static void DEC_rr(uint8_t *high, uint8_t *low) { if (!*low) (*high)--; (*low)--; r.m = 2; }
