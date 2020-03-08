@@ -85,6 +85,7 @@ static void LD_SPHL(void) { r.sp = HL(); r.m = 2; }
 static void LD_HLSPdd(void) { int8_t d = Mem_rb(r.pc++); setHL(r.sp + d); setZF(0); setCY(d > 0 ? (uint8_t)(r.sp - d) > r.sp : (uint8_t)(r.sp + d) < r.sp); r.m = 3; }
 static void PUSH(uint16_t val) { r.sp -= 2; Mem_ww(r.sp, val); r.m = 4; }
 static void POP(uint8_t *high, uint8_t *low) { uint16_t w = Mem_rw(r.sp); *low = w & 0xFF; *high = w >> 8; r.sp += 2; r.m = 3; }
+static void POP_AF() { uint16_t w = Mem_rw(r.sp); r.f = w & 0xF0; r.a = w >> 8; r.sp += 2; r.m = 3; }
 
 // 8-bit arithmetic/logical
 static void ADD_r(uint8_t src) { setH(HCAdd(r.a, src)); r.a += src; setZF(r.a == 0); setCY((uint8_t)(r.a - src) > r.a); setN(0); r.m = 1; }
@@ -694,7 +695,7 @@ static void dispatch(uint8_t op)
         case 0xEE: XOR_n(); break;
         case 0xEF: RST_n(0x28); break;
         case 0xF0: LD_AIOn(); break;
-        case 0xF1: POP(&r.a, &r.f); break;
+        case 0xF1: POP_AF(); break;
         case 0xF2: LD_AIOC(); break;
         case 0xF3: DI(); break;
         case 0xF5: PUSH(AF()); break;
