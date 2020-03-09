@@ -17,7 +17,11 @@
     #define openFile(filePtr, fileName, flags) filePtr = fopen(fileName, flags)
 #endif
 
-static uint8_t ram[0xFFFF];
+#define RAM_SIZE 1 << 16
+#define MAX_CART_SIZE 1 << 21
+
+static uint8_t ram[RAM_SIZE];
+static uint8_t cart[MAX_CART_SIZE];
 static uint8_t inBootRom = 1;
 static uint8_t bootRom[0x100] = {
     0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
@@ -44,26 +48,33 @@ uint8_t interruptFlag = 0;
 // FFFF - Interrupt Enable
 uint8_t interruptEnable = 0;
 
+// MBC
+uint8_t externalRamEnable = 0;
+uint8_t romBankSelect = 1;
+uint8_t ramBankSelect = 0;
+uint8_t romRamModeSelect = 0;
+
 void Mem_loadCartridge(const char *cartFilename)
 {
-    FILE *cart = NULL;
-    openFile(cart, cartFilename, "rb");
-    if (!cart)
+    FILE *cartridge = NULL;
+    openFile(cartridge, cartFilename, "rb");
+    if (!cartridge)
     {
         printf("Failed to open rom %s\n", cartFilename);
         exit(1);
     }
-    uint16_t cartSize = 1 << 15; // 32 KB
-    if (fread(ram, 1, cartSize, cart) != cartSize)
+    if (!fread(cart, 1, MAX_CART_SIZE, cartridge))
     {
         printf("Failed to read from cart\n");
         exit(1);
     }
-    if (fclose(cart))
+    if (fclose(cartridge))
     {
         printf("Failed to close cart\n");
         exit(1);
     }
+    uint8_t cartType = cart[0x147];
+    assert(cartType == 0 || cartType == 1);
 #ifdef SKIP_BOOTROM
     inBootRom = 0;
 #endif
@@ -74,17 +85,21 @@ uint8_t Mem_rb(uint16_t addr)
     uint8_t *mem = ram;
     char *location = strdup("unknown");
     const uint8_t msb = (addr & 0xF000) >> 12;
-    if (msb < 0x8)
+    if (addr < 0x100 && inBootRom)
     {
-        if (addr < 0x100 && inBootRom)
-        {
-            mem = bootRom;
-            location = strdup("bootrom");
-        }
-        else
-        {
-            location = strdup("cartrom");
-        }
+        mem = bootRom;
+        location = strdup("bootrom");
+    }
+    else if (msb < 0x4)
+    {
+        mem = cart;
+        location = strdup("cart rom bank 0");
+    }
+    else if (msb < 0x8)
+    {
+        MEM_PRINT(("mem read cartrom addr %04x rom bank %d\n", addr, romBankSelect));
+        uint32_t cartAddr = addr + (0x4000 * (romBankSelect - 1));
+        return cart[cartAddr];
     }
     else if (msb < 0xA)
     {
@@ -174,12 +189,31 @@ void Mem_wb(uint16_t addr, uint8_t val)
 {
     char *location = strdup("unknown");
     const uint8_t msb = (addr & 0xF000) >> 12;
-    if (msb < 0x8)
+    if (msb < 0x2)
     {
-        location = addr < 0x100 && inBootRom ? strdup("bootrom") : strdup("cartrom");
-        printf("attempted %s write at addr %04x val %02x\n", location, addr, val);
-        free(location);
-        assert(0);
+        MEM_PRINT(("mem write to external ram enable, val %02x\n", val));
+        externalRamEnable = val != 0;
+        return;
+    }
+    else if (msb < 0x4)
+    {
+        MEM_PRINT(("mem write to rom bank select, val %02x\n", val));
+        romBankSelect = val & 0x1F;
+        if (romBankSelect == 0)
+            romBankSelect++;
+        return;
+    }
+    else if (msb < 0x6)
+    {
+        MEM_PRINT(("mem write to ram bank select or upper bits of rom bank, val %02x\n", val));
+        ramBankSelect = val & 3;
+        return;
+    }
+    else if (msb < 0x8)
+    {
+        MEM_PRINT(("mem write to rom/ram mode select, val %02x\n", val));
+        romRamModeSelect = val & 1;
+        return;
     }
     else if (msb < 0xA)
     {
