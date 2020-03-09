@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+void Cpu_init(void);
 uint8_t Cpu_step(void);
 
 #endif

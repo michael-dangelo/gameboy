@@ -14,6 +14,7 @@ int main(int argc, char **argv)
         printf("\nUsage: %s <rom file>\n\n", argv[0]);
         return 1;
     }
+    Cpu_init();
     Mem_loadCartridge(argv[1]);
     Graphics_init();
     while (1)
