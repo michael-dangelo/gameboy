@@ -18,8 +18,6 @@ static const char *opName(uint8_t op);
 static const char *cbOpName(uint8_t op);
 static void printCpu(void);
 
-static uint16_t BREAK = 0xc01c;
-
 uint8_t Cpu_step(void)
 {
 #ifdef SKIP_BOOTROM
@@ -30,8 +28,6 @@ uint8_t Cpu_step(void)
     uint8_t op = Mem_rb(r.pc++);
     CPU_PRINT(("op %s [%02x]\n", opName(op), op));
     dispatch(op);
-    if (r.pc == BREAK)
-        enableDebugPrints = 1;
     printCpu();
     r.t = r.m * 4;
     return r.t;
@@ -82,7 +78,7 @@ static void LD_rrnn(uint8_t *high, uint8_t *low) { *low = Mem_rb(r.pc++); *high 
 static void LD_SPnn(void) { r.sp = Mem_rw(r.pc); r.pc += 2; r.m = 2; }
 static void LD_nnmSP(void) { Mem_ww(Mem_rw(r.pc), r.sp); r.pc += 2; r.m = 3; }
 static void LD_SPHL(void) { r.sp = HL(); r.m = 2; }
-static void LD_HLSPdd(void) { int8_t d = Mem_rb(r.pc++); setHL(r.sp + d); setZF(0); setCY(d > 0 ? (uint8_t)(r.sp - d) > r.sp : (uint8_t)(r.sp + d) < r.sp); r.m = 3; }
+static void LD_HLSPdd(void) { int8_t d = Mem_rb(r.pc++); uint8_t lowSp = r.sp & 0xFF; setH(HCAdd(lowSp, d)); setHL(r.sp + d); lowSp += d; setZF(0); setCY((uint8_t)(lowSp - d) > lowSp); setN(0); r.m = 3; }
 static void PUSH(uint16_t val) { r.sp -= 2; Mem_ww(r.sp, val); r.m = 4; }
 static void POP(uint8_t *high, uint8_t *low) { uint16_t w = Mem_rw(r.sp); *low = w & 0xFF; *high = w >> 8; r.sp += 2; r.m = 3; }
 static void POP_AF() { uint16_t w = Mem_rw(r.sp); r.f = w & 0xF0; r.a = w >> 8; r.sp += 2; r.m = 3; }
@@ -122,12 +118,12 @@ static void SCF(void) { setCY(1); setN(0); setH(0); r.m = 1; }
 static void CCF(void) { setCY(CY() ^ 1); setN(0); setH(0); r.m = 1; }
 
 // 16-bit arithmetic/logical
-static void ADD_HLrr(uint16_t src) { setH((HL() & 0xfff) + (src & 0xfff) >= 0x1000); setHL(HL() + src); setCY((uint16_t)(HL() - src) > HL()); setN(0); r.m = 2; }
+static void ADD_HLrr(uint16_t src) { setH((HL() & 0xFFF) + (src & 0xFFF) >= 0x1000); setHL(HL() + src); setCY((uint16_t)(HL() - src) > HL()); setN(0); r.m = 2; }
 static void INC_rr(uint8_t *high, uint8_t *low) { (*low)++; if (!*low) (*high)++; r.m = 2; }
 static void INC_SP(void) { r.sp++; r.m = 2; }
 static void DEC_rr(uint8_t *high, uint8_t *low) { if (!*low) (*high)--; (*low)--; r.m = 2; }
 static void DEC_SP(void) { r.sp--; r.m = 2; }
-static void ADD_SPdd(void) { int8_t d = Mem_rb(r.pc++); r.sp += d; setZF(0); setCY(d > 0 ? (uint16_t)(r.sp - d) > r.sp : (uint16_t)(r.sp + d) < r.sp); r.m = 4; }
+static void ADD_SPdd(void) { int8_t d = Mem_rb(r.pc++); uint8_t lowSp = r.sp & 0xFF; setH(HCAdd(lowSp, d)); r.sp += d; lowSp += d; setZF(0); setCY((uint8_t)(lowSp - d) > lowSp); setN(0); r.m = 4; }
 
 // Rotate/shift
 static void RLCA(void) { uint8_t v = (r.a >> 7) & 1; r.a <<= 1; r.a |= v; setZF(0); setCY(v); setN(0); setH(0); r.m = 1; }
