@@ -14,6 +14,7 @@ static struct
 } r;
 
 static void dispatch(uint8_t op);
+static void interrupts(void);
 static const char *opName(uint8_t op);
 static const char *cbOpName(uint8_t op);
 static void printCpu(void);
@@ -31,10 +32,12 @@ uint8_t Cpu_step(void)
     uint8_t op = Mem_rb(r.pc++);
     dispatch(op);
     r.t = r.m * 4;
+    if (r.ime)
+        interrupts();
     return r.t;
 }
 
-// --- Instructions and op names ---
+// --- Instructions
 
 // Helpers
 static uint16_t rr(uint8_t high, uint8_t low) { return ((uint16_t)high << 8) + low; }
@@ -450,7 +453,6 @@ static void CB_PREFIX()
         case 0xFD: SET_nr(7, &r.l); break;
         case 0xFE: SET_nHLm(7); break;
         case 0xFF: SET_nr(7, &r.a); break;
-        default: assert(0);
     }
 }
 
@@ -703,7 +705,46 @@ static void dispatch(uint8_t op)
         case 0xFB: EI(); break;
         case 0xFE: CP_n(); break;
         case 0xFF: RST_n(0x38); break;
-        default: assert(0);
+    }
+}
+
+void interrupts(void)
+{
+    uint8_t interruptFlag = Mem_rb(0xFF0F);
+    if (interruptFlag)
+    {
+        r.ime = 0;
+        if (interruptFlag & 0x1)
+        {
+            // vblank interrupt
+            interruptFlag &= ~0x1;
+            CALL(0x40);
+        }
+        else if (interruptFlag & 0x2)
+        {
+            // lcd status
+            interruptFlag &= ~0x2;
+            CALL(0x48);
+        }
+        else if (interruptFlag & 0x4)
+        {
+            // timer
+            interruptFlag &= ~0x4;
+            CALL(0x50);
+        }
+        else if (interruptFlag & 0x8)
+        {
+            // serial
+            interruptFlag &= ~0x8;
+            CALL(0x58);
+        }
+        else if (interruptFlag & 0x10)
+        {
+            // joypad
+            interruptFlag &= ~0x10;
+            CALL(0x60);
+        }
+        Mem_wb(0xFF0F, interruptFlag);
     }
 }
 

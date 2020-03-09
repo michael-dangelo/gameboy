@@ -37,6 +37,12 @@ static uint8_t bootRom[0x100] = {
     0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50,
 };
 
+// FF0F - Interrupt Flag
+uint8_t interruptFlag = 0;
+
+// FFFF - Interrupt Enable
+uint8_t interruptEnable = 0;
+
 void Mem_loadCartridge(const char *cartFilename)
 {
     FILE *cart = NULL;
@@ -82,6 +88,7 @@ uint8_t Mem_rb(uint16_t addr)
     else if (msb < 0xA)
     {
         // vram
+        free(location);
         return Graphics_rb(addr);
     }
     else if (msb < 0xC)
@@ -112,7 +119,9 @@ uint8_t Mem_rb(uint16_t addr)
     }
     else if (addr == 0xFF0F)
     {
-        location = strdup("interruptflag");
+        MEM_PRINT(("mem read interrupt flag, val %02x\n", interruptFlag));
+        free(location);
+        return interruptFlag;
     }
     else if (addr == 0xFF24)
     {
@@ -140,7 +149,9 @@ uint8_t Mem_rb(uint16_t addr)
     }
     else if (addr == 0xFFFF)
     {
-        location = strdup("interruptenable");
+        MEM_PRINT(("mem read interrupt enable, val %02x\n", interruptEnable));
+        free(location);
+        return interruptEnable;
     }
     uint8_t val = mem[addr];
     MEM_PRINT(("%s read byte at %04x, val %02x\n", location, addr, val));
@@ -163,12 +174,14 @@ void Mem_wb(uint16_t addr, uint8_t val)
     {
         location = addr < 0x100 && inBootRom ? strdup("bootrom") : strdup("cartrom");
         printf("attempted %s write at addr %04x val %02x\n", location, addr, val);
+        free(location);
         assert(0);
     }
     else if (msb < 0xA)
     {
         // vram
         Graphics_wb(addr, val);
+        free(location);
         return;
     }
     else if (msb < 0xC)
@@ -199,7 +212,10 @@ void Mem_wb(uint16_t addr, uint8_t val)
     }
     else if (addr == 0xFF0F)
     {
-        location = strdup("interruptflag");
+        MEM_PRINT(("mem write interrupt flag, val %02x\n", val));
+        free(location);
+        interruptFlag = val;
+        return;
     }
     else if (addr == 0xFF24)
     {
@@ -216,6 +232,7 @@ void Mem_wb(uint16_t addr, uint8_t val)
     else if ((0xFF40 <= addr && addr <= 0xFF44) || addr == 0xFF47)
     {
         Graphics_wb(addr, val);
+        free(location);
         return;
     }
     else if (addr == 0xFF50)
@@ -233,7 +250,11 @@ void Mem_wb(uint16_t addr, uint8_t val)
     }
     else if (addr == 0xFFFF)
     {
-        location = strdup("interruptenable");
+        MEM_PRINT(("mem write interrupt enable, val %02x\n", val));
+        free(location);
+        interruptEnable = val;
+        return;
+
     }
     MEM_PRINT(("%s write byte at %04x val %02x\n", location, addr, val));
     free(location);
