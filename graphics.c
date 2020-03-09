@@ -4,6 +4,8 @@
 
 #include "SDL/SDL.h"
 
+#include "windows.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +23,9 @@ static SDL_Renderer *debug_renderer = NULL;
 static uint8_t vram[0x2000];
 static uint16_t clock = 0;
 
+static uint8_t s_fps = 60;
 static uint8_t s_scale = 3;
+static LARGE_INTEGER freq;
 
 typedef enum {
     HBLANK,
@@ -99,6 +103,7 @@ void Graphics_init(void)
         exit(1);
     }
 #endif
+    QueryPerformanceFrequency(&freq);
 }
 
 #if !defined(DISABLE_RENDER) | defined(DEBUG_TILES)
@@ -165,6 +170,30 @@ static void renderScanline()
 }
 #endif
 
+void render(void)
+{
+    SDL_RenderPresent(renderer);
+    SDL_Event event;
+    while (SDL_PollEvent(&event))
+        if (event.type == SDL_QUIT)
+            exit(0);
+
+    static LARGE_INTEGER start, end;
+    static uint8_t started = 0;
+    const double msPerFrame = 1000.0 / s_fps;
+    if (started)
+    {
+        QueryPerformanceCounter(&end);
+        double elapsed = (end.QuadPart - start.QuadPart) * 1000.0 / freq.QuadPart;
+        double remaining = msPerFrame - elapsed;
+        if (remaining > 5)
+            SDL_Delay((uint32_t)remaining);
+        QueryPerformanceCounter(&end);
+    }
+    started = 1;
+    QueryPerformanceCounter(&start);
+}
+
 static void step(uint8_t ticks)
 {
     clock += ticks;
@@ -188,7 +217,7 @@ static void step(uint8_t ticks)
                 return;
             line = 0;
             mode = OAM;
-            SDL_RenderPresent(renderer);
+            render();
             break;
         case OAM:
             if (clock < 80)
@@ -263,10 +292,6 @@ void drawDebugTiles(void)
 
 void Graphics_step(uint8_t ticks)
 {
-    SDL_Event event;
-    while (SDL_PollEvent(&event))
-        if (event.type == SDL_QUIT)
-            exit(0);
     if (lcdDisplayEnable)
         step(ticks);
 #ifdef DEBUG_TILES
