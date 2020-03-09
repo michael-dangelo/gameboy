@@ -14,13 +14,16 @@ int main(int argc, char **argv)
         printf("\nUsage: %s <rom file>\n\n", argv[0]);
         return 1;
     }
+
     Cpu_init();
     Mem_loadCartridge(argv[1]);
     Graphics_init();
+
     while (1)
     {
         uint8_t ticks = Cpu_step();
         Graphics_step(ticks);
+        Cpu_interrupts();
     }
 }
 

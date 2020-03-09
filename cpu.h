@@ -5,5 +5,6 @@
 
 void Cpu_init(void);
 uint8_t Cpu_step(void);
+void Cpu_interrupts(void);
 
 #endif

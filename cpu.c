@@ -14,7 +14,6 @@ static struct
 } r;
 
 static void dispatch(uint8_t op);
-static void interrupts(void);
 static const char *opName(uint8_t op);
 static const char *cbOpName(uint8_t op);
 static void printCpu(void);
@@ -32,8 +31,6 @@ uint8_t Cpu_step(void)
     uint8_t op = Mem_rb(r.pc++);
     dispatch(op);
     r.t = r.m * 4;
-    if (r.ime)
-        interrupts();
     return r.t;
 }
 
@@ -708,8 +705,11 @@ static void dispatch(uint8_t op)
     }
 }
 
-void interrupts(void)
+void Cpu_interrupts(void)
 {
+    if (!r.ime)
+        return;
+
     uint8_t interruptFlag = Mem_rb(0xFF0F);
     if (interruptFlag)
     {
