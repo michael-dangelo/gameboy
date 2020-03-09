@@ -55,7 +55,7 @@ static uint8_t lineCompareFlag = 0;
 // FF42 - Scroll Y
 static uint8_t scrollY = 0;
 
-// FF43 - Scrool X
+// FF43 - Scroll X
 static uint8_t scrollX = 0;
 
 // FF44 - LDC Y-Coordinate
@@ -339,7 +339,7 @@ uint8_t Graphics_rb(uint16_t addr)
             res = palette;
             break;
     }
-    MEM_PRINT(("reading from gpu addr %02x val %02x\n", addr, res));
+    MEM_PRINT(("reading from gpu addr %04x val %02x\n", addr, res));
     return res;
 }
 
