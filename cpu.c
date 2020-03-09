@@ -3,8 +3,6 @@
 #include "debug.h"
 #include "memory.h"
 
-#include <assert.h>
-
 static struct
 {
     uint8_t a, b, c, d, e, h, l, f;
@@ -162,7 +160,7 @@ static void RES_nHLm(uint8_t n) { Mem_wb(HL(), Mem_rb(HL()) & ~(1 << n)); r.m = 
 // Control
 static void NOP(void) { r.m = 1; }
 static void HALT(void) { r.halted = 1; r.m = 1; }
-static void STOP(void) { Mem_rb(r.pc++); assert(0); }
+static void STOP(void) { Mem_rb(r.pc++); }
 static void DI(void) { r.ime = 0; r.m = 1; }
 static void EI(void) { r.ime = 1; r.m = 1; }
 
