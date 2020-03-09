@@ -11,6 +11,7 @@ static struct
     uint16_t pc, sp;
     uint8_t m, t;
     uint8_t ime;
+    uint8_t halted;
 } r;
 
 static void dispatch(uint8_t op);
@@ -28,6 +29,8 @@ void Cpu_init(void)
 
 uint8_t Cpu_step(void)
 {
+    if (r.halted)
+        return 4;
     uint8_t op = Mem_rb(r.pc++);
     dispatch(op);
     r.t = r.m * 4;
@@ -158,7 +161,7 @@ static void RES_nHLm(uint8_t n) { Mem_wb(HL(), Mem_rb(HL()) & ~(1 << n)); r.m = 
 
 // Control
 static void NOP(void) { r.m = 1; }
-static void HALT(void) { assert(0); r.m = 1; }
+static void HALT(void) { r.halted = 1; r.m = 1; }
 static void STOP(void) { Mem_rb(r.pc++); assert(0); }
 static void DI(void) { r.ime = 0; r.m = 1; }
 static void EI(void) { r.ime = 1; r.m = 1; }
@@ -707,10 +710,13 @@ static void dispatch(uint8_t op)
 
 void Cpu_interrupts(void)
 {
+    uint8_t interruptFlag = Mem_rb(0xFF0F);
+    if (interruptFlag)
+        r.halted = 0;
+
     if (!r.ime)
         return;
 
-    uint8_t interruptFlag = Mem_rb(0xFF0F);
     if (interruptFlag)
     {
         r.ime = 0;

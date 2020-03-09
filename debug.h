@@ -9,6 +9,7 @@ extern uint8_t enableDebugPrints;
 #define DEBUG_CPU
 #define DEBUG_MEMORY
 #define DEBUG_GRAPHICS
+#define DEBUG_TIMER
 // #define DEBUG_TILES
 // #define DISABLE_RENDER
 #define SKIP_BOOTROM
@@ -35,6 +36,12 @@ extern uint8_t enableDebugPrints;
 #define GPU_PRINT(x) PRINT(x)
 #else
 #define GPU_PRINT(x)
+#endif
+
+#ifdef DEBUG_TIMER
+#define TIMER_PRINT(x) PRINT(x)
+#else
+#define TIMER_PRINT(x)
 #endif
 
 #endif

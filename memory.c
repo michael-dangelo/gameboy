@@ -2,6 +2,7 @@
 
 #include "debug.h"
 #include "graphics.h"
+#include "timer.h"
 
 #include <assert.h>
 #include <stdint.h>
@@ -113,14 +114,17 @@ uint8_t Mem_rb(uint16_t addr)
         location = strdup("notusable");
         assert(0);
     }
-    else if (addr == 0xFF07)
+    else if (0xFF04 <= addr && addr <= 0xFF07)
     {
-        location = strdup("timercontrol");
+        free(location);
+        return Timer_rb(addr);
     }
     else if (addr == 0xFF0F)
     {
-        MEM_PRINT(("mem read interrupt flag, val %02x\n", interruptFlag));
         free(location);
+        uint8_t timerInterrupt = Timer_interrupt();
+        interruptFlag |= timerInterrupt << 2;
+        MEM_PRINT(("mem read interrupt flag, val %02x\n", interruptFlag));
         return interruptFlag;
     }
     else if (addr == 0xFF24)
@@ -206,9 +210,11 @@ void Mem_wb(uint16_t addr, uint8_t val)
         location = strdup("notusable");
         assert(0);
     }
-    else if (addr == 0xFF07)
+    else if (0xFF04 <= addr && addr <= 0xFF07)
     {
-        location = strdup("timercontrol");
+        Timer_wb(addr, val);
+        free(location);
+        return;
     }
     else if (addr == 0xFF0F)
     {
