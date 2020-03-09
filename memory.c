@@ -57,6 +57,9 @@ void Mem_loadCartridge(const char *cartFilename)
         printf("Failed to close cart\n");
         exit(1);
     }
+#ifdef SKIP_BOOTROM
+    inBootRom = 0;
+#endif
 }
 
 uint8_t Mem_rb(uint16_t addr)
