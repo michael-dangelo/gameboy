@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-uint8_t enableDebugPrints = 1;
+uint8_t enableDebugPrints = 0;
 
 int main(int argc, char **argv)
 {

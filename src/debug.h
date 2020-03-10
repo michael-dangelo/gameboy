@@ -11,7 +11,6 @@ extern uint8_t enableDebugPrints;
 // #define DEBUG_GRAPHICS
 // #define DEBUG_TIMER
 #define DEBUG_INTERRUPTS
-// #define DEBUG_TILES
 // #define DISABLE_RENDER
 #define SKIP_BOOTROM
 

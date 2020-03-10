@@ -27,6 +27,8 @@ void Cpu_init(void)
 #endif
 }
 
+static uint16_t BREAK = 0x0272;
+
 uint8_t Cpu_step(void)
 {
     if (r.halted)
@@ -36,6 +38,8 @@ uint8_t Cpu_step(void)
     CPU_PRINT(("op %s\n", opName(op)));
     dispatch(op);
     printCpu();
+    if (r.pc == BREAK)
+        enableDebugPrints = 1;
     return r.m * 4;
 }
 
@@ -197,6 +201,7 @@ static void RST_n(uint8_t n) { CALL(n); r.m = 4; }
 static void CB_PREFIX()
 {
     uint8_t op = Mem_rb(r.pc++);
+    CPU_PRINT(("op %s\n", cbOpName(op)));
     switch(op)
     {
         case 0x00: RLC_r(&r.b); break;
