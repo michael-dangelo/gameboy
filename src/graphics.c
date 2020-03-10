@@ -14,12 +14,6 @@ static SDL_Window *window = NULL;
 static SDL_Surface *screen = NULL;
 static SDL_Renderer *renderer = NULL;
 
-#ifdef DEBUG_TILES
-static SDL_Window *debug_window = NULL;
-static SDL_Surface *debug_screen = NULL;
-static SDL_Renderer *debug_renderer = NULL;
-#endif
-
 static uint8_t vram[0x2000];
 static uint16_t clock = 0;
 
@@ -64,6 +58,9 @@ static uint8_t line = 0;
 // FF47 - BG Palette Data
 static uint8_t palette = 0;
 
+// V-Blank Interrupt Request
+static uint8_t vblankInterruptRequest = 0;
+
 void Graphics_init(void)
 {
     if (SDL_Init(SDL_INIT_VIDEO))
@@ -93,20 +90,10 @@ void Graphics_init(void)
         exit(1);
     }
     SDL_RenderSetScale(renderer, s_scale, s_scale);
-#ifdef DEBUG_TILES
-    debug_window = SDL_CreateWindow("Debug Tilemap", 700, 300, 256, 256, 0);
-    debug_screen = SDL_GetWindowSurface(debug_window);
-    debug_renderer = SDL_CreateRenderer(debug_window, -1, 0);
-    if (!debug_window || !debug_screen || !debug_renderer)
-    {
-        printf("Something went wrong trying to debug graphics\n");
-        exit(1);
-    }
-#endif
     QueryPerformanceFrequency(&freq);
 }
 
-#if !defined(DISABLE_RENDER) | defined(DEBUG_TILES)
+#ifndef DISABLE_RENDER
 static uint16_t tileLineAt(uint16_t addr, uint16_t yOffset)
 {
     uint16_t tile = tileDataSelect ? (uint16_t)vram[addr] * 16
@@ -204,9 +191,14 @@ static void step(uint8_t ticks)
                 return;
             clock = 0;
             if (line++ < 143)
+            {
                 mode = OAM;
+            }
             else
+            {
                 mode = VBLANK;
+                vblankInterruptRequest = 1;
+            }
             break;
         case VBLANK:
             if (clock < 456)
@@ -238,65 +230,10 @@ static void step(uint8_t ticks)
     return;
 }
 
-#ifdef DEBUG_TILES
-static uint16_t frameCount = 0;
-void drawDebugTiles(void)
-{
-    // only draw a few frames, expensive
-    frameCount++;
-    static uint16_t framesPerRender = 1000;
-    if (frameCount % framesPerRender)
-        return;
-
-    uint16_t tileMap = bgTileMapSelect ? 0x1C00 : 0x1800;
-    for (uint16_t line_ = 0; line_ < 256; line_++)
-    {
-        int colorIndex[4] = {0};
-        SDL_Point colorPoints[4][256] = {0};
-        uint16_t tileMapOffset = tileMap + ((line_ / 8) * 32);
-        uint16_t yOffset = (line_ & 7) * 2;
-        uint16_t tileMapIndex = 0;
-        GPU_PRINT(("tile map at %04x pixels %04x\n", tileMapOffset + tileMapIndex + 0x8000, tileLine));
-        uint16_t tileLine = tileLineAt(tileMapOffset + tileMapIndex, yOffset);
-        uint8_t x = 0;
-        for (uint16_t i = 0; i < 256; i++)
-        {
-            uint8_t color = colorAt(tileLine, x);
-            SDL_Point p;
-            p.x = i;
-            p.y = line_;
-            colorPoints[color][colorIndex[color]] = p;
-            colorIndex[color]++;
-            x++;
-            if (x == 8)
-            {
-                x = 0;
-                tileMapIndex++;
-                GPU_PRINT(("tile map at %04x pixels %04x\n", tileMapOffset + tileMapIndex + 0x8000, tileLine));
-                tileLine = tileLineAt(tileMapOffset + tileMapIndex, yOffset);
-            }
-        }
-        for (uint8_t i = 0; i < 4; i++)
-        {
-            static uint8_t colors[4] = {235, 192, 96, 0};
-            uint8_t color = colors[i];
-            SDL_SetRenderDrawColor(debug_renderer, color, color, color, 255);
-            SDL_Point *points = colorPoints[i];
-            int count = colorIndex[i];
-            SDL_RenderDrawPoints(debug_renderer, points, count);
-        }
-    }
-    SDL_RenderPresent(debug_renderer);
-}
-#endif
-
 void Graphics_step(uint8_t ticks)
 {
     if (lcdDisplayEnable)
         step(ticks);
-#ifdef DEBUG_TILES
-    drawDebugTiles();
-#endif
 }
 
 uint8_t Graphics_rb(uint16_t addr)
@@ -381,4 +318,11 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             break;
     }
     MEM_PRINT(("writing to gpu addr %04x val %02x\n", addr, val));
+}
+
+uint8_t Graphics_vblankInterrupt(void)
+{
+    uint8_t interrupt = vblankInterruptRequest;
+    vblankInterruptRequest = 0;
+    return interrupt;
 }

@@ -15,6 +15,7 @@ static uint8_t modulo = 0;
 static uint8_t timerEnable = 0;
 static uint8_t inputClockSelect = 0;
 
+// Timer Interrupt Request
 static uint8_t interruptRequest = 0;
 
 void Timer_step(uint8_t ticks)

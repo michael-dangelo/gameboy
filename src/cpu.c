@@ -13,8 +13,10 @@ static struct
 } r;
 
 static void dispatch(uint8_t op);
+#if defined(DEBUG_CPU) && defined(DEBUG)
 static const char *opName(uint8_t op);
 static const char *cbOpName(uint8_t op);
+#endif
 static void printCpu(void);
 
 void Cpu_init(void)
@@ -163,8 +165,8 @@ static void RES_nHLm(uint8_t n) { Mem_wb(HL(), Mem_rb(HL()) & ~(1 << n)); r.m = 
 static void NOP(void) { r.m = 1; }
 static void HALT(void) { r.halted = 1; r.m = 1; }
 static void STOP(void) { Mem_rb(r.pc++); r.m = 1; }
-static void DI(void) { r.ime = 0; r.m = 1; }
-static void EI(void) { r.ime = 1; r.m = 1; }
+static void DI(void) { INT_PRINT(("ime disabled by DI\n")); r.ime = 0; r.m = 1; }
+static void EI(void) { INT_PRINT(("ime enabled by EI\n"));r.ime = 1; r.m = 1; }
 
 // Jumps
 static void JP_nn(void) { r.pc = Mem_rw(r.pc); r.m = 4; }
@@ -723,30 +725,35 @@ void Cpu_interrupts(void)
         if (interruptFlag & 0x1)
         {
             // vblank interrupt
+            INT_PRINT(("cpu handling vblank interrupt\n"));
             interruptFlag &= ~0x1;
             CALL(0x40);
         }
         else if (interruptFlag & 0x2)
         {
             // lcd status
+            INT_PRINT(("cpu handling lcd status interrupt\n"));
             interruptFlag &= ~0x2;
             CALL(0x48);
         }
         else if (interruptFlag & 0x4)
         {
             // timer
+            INT_PRINT(("cpu handling timer interrupt\n"));
             interruptFlag &= ~0x4;
             CALL(0x50);
         }
         else if (interruptFlag & 0x8)
         {
             // serial
+            INT_PRINT(("cpu handling serial interrupt\n"));
             interruptFlag &= ~0x8;
             CALL(0x58);
         }
         else if (interruptFlag & 0x10)
         {
             // joypad
+            INT_PRINT(("cpu handling joypad interrupt\n"));
             interruptFlag &= ~0x10;
             CALL(0x60);
         }
@@ -824,6 +831,7 @@ const char *cbOpNames[256] = {
     "SET7 B", "SET7 C", "SET7 D", "SET7 E", "SET7 H", "SET7 L", "SET7 (HL)", "SET7 A",
 };
 
+#if defined(DEBUG_CPU) && defined(DEBUG)
 const char *opName(uint8_t op)
 {
     return opNames[op];
@@ -833,6 +841,7 @@ const char *cbOpName(uint8_t op)
 {
     return cbOpNames[op];
 }
+#endif
 
 static void printCpu(void)
 {

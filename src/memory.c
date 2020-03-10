@@ -10,13 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef _MSC_VER
-    #define strdup _strdup
-    #define openFile(filePtr, fileName, flags) fopen_s(&filePtr, fileName, flags)
-#else
-    #define openFile(filePtr, fileName, flags) filePtr = fopen(fileName, flags)
-#endif
-
 #define RAM_SIZE 1 << 16
 #define MAX_CART_SIZE 1 << 21
 
@@ -56,8 +49,7 @@ uint8_t romRamModeSelect = 0;
 
 void Mem_loadCartridge(const char *cartFilename)
 {
-    FILE *cartridge = NULL;
-    openFile(cartridge, cartFilename, "rb");
+    FILE *cartridge = fopen(cartFilename, "rb");
     if (!cartridge)
     {
         printf("Failed to open rom %s\n", cartFilename);
@@ -138,7 +130,9 @@ uint8_t Mem_rb(uint16_t addr)
     {
         free(location);
         uint8_t timerInterrupt = Timer_interrupt();
+        uint8_t vblankInterrupt = Graphics_vblankInterrupt();
         interruptFlag |= timerInterrupt << 2;
+        interruptFlag |= vblankInterrupt;
         MEM_PRINT(("mem read interrupt flag, val %02x\n", interruptFlag));
         return interruptFlag;
     }
