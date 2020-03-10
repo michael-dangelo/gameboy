@@ -126,8 +126,8 @@ uint8_t Mem_rb(uint16_t addr)
     }
     else if (addr < 0xFF00)
     {
-        location = strdup("notusable");
-        assert(0);
+        MEM_PRINT(("read from unusable memory\n"));
+        return 0xFF;
     }
     else if (0xFF04 <= addr && addr <= 0xFF07)
     {
@@ -241,8 +241,8 @@ void Mem_wb(uint16_t addr, uint8_t val)
     }
     else if (addr < 0xFF00)
     {
-        location = strdup("notusable");
-        assert(0);
+        MEM_PRINT(("write to unusable memory\n"));
+        return;
     }
     else if (0xFF04 <= addr && addr <= 0xFF07)
     {
