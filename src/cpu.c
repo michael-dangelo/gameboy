@@ -724,38 +724,40 @@ void Cpu_interrupts(void)
     if (!r.ime)
         return;
 
-    if (interruptFlag)
+    uint8_t interruptEnable = Mem_rb(0xFFFF);
+    uint8_t permittedInterrupts = interruptFlag & interruptEnable;
+    if (permittedInterrupts)
     {
         r.ime = 0;
-        if (interruptFlag & 0x1)
+        if (permittedInterrupts & 0x1)
         {
             // vblank interrupt
             INT_PRINT(("cpu handling vblank interrupt\n"));
             interruptFlag &= ~0x1;
             CALL(0x40);
         }
-        else if (interruptFlag & 0x2)
+        else if (permittedInterrupts & 0x2)
         {
             // lcd status
             INT_PRINT(("cpu handling lcd status interrupt\n"));
             interruptFlag &= ~0x2;
             CALL(0x48);
         }
-        else if (interruptFlag & 0x4)
+        else if (permittedInterrupts & 0x4)
         {
             // timer
             INT_PRINT(("cpu handling timer interrupt\n"));
             interruptFlag &= ~0x4;
             CALL(0x50);
         }
-        else if (interruptFlag & 0x8)
+        else if (permittedInterrupts & 0x8)
         {
             // serial
             INT_PRINT(("cpu handling serial interrupt\n"));
             interruptFlag &= ~0x8;
             CALL(0x58);
         }
-        else if (interruptFlag & 0x10)
+        else if (permittedInterrupts & 0x10)
         {
             // joypad
             INT_PRINT(("cpu handling joypad interrupt\n"));

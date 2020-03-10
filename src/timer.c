@@ -44,7 +44,7 @@ void Timer_step(uint8_t ticks)
         if (counter == 0)
         {
             counter = modulo;
-            TIMER_PRINT(("timer requesting interrupt\n"));
+            INT_PRINT(("timer requesting interrupt\n"));
             interruptRequest = 1;
         }
         countCounter -= divisor;
