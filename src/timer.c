@@ -59,15 +59,19 @@ uint8_t Timer_rb(uint16_t addr)
     {
         case 0xFF04:
             res = divider;
+            MEM_PRINT(("timer read from divider, val %02x\n", res));
             break;
         case 0xFF05:
             res = counter;
+            MEM_PRINT(("timer read from counter, val %02x\n", res));
             break;
         case 0xFF06:
             res = modulo;
+            MEM_PRINT(("timer read from modulo, val %02x\n", res));
             break;
         case 0xFF07:
             res = (timerEnable << 2) | (inputClockSelect);
+            MEM_PRINT(("timer read from control, val %02x\n", res));
             break;
     }
     TIMER_PRINT(("reading from timer addr %04x val %02x\n", addr, res));
@@ -80,16 +84,20 @@ void Timer_wb(uint16_t addr, uint8_t val)
     {
         case 0xFF04:
             divider = 0;
+            MEM_PRINT(("timer write to divider, setting to 0\n"));
             break;
         case 0xFF05:
             counter = val;
+            MEM_PRINT(("timer write to counter, val %02x\n", val));
             break;
         case 0xFF06:
             modulo = val;
+            MEM_PRINT(("timer write to modulo, val %02x\n", val));
             break;
         case 0xFF07:
             timerEnable = (val >> 2) & 1;
             inputClockSelect = val & 3;
+            MEM_PRINT(("timer write to control, val %02x\n", val));
             break;
     }
     TIMER_PRINT(("writing to timer addr %04x val %02x\n", addr, val));
