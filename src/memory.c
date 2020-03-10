@@ -247,6 +247,7 @@ void Mem_wb(uint16_t addr, uint8_t val)
     else if (addr == 0xFF0F)
     {
         MEM_PRINT(("mem write interrupt flag, val %02x\n", val));
+        INT_PRINT(("interrupt flag written, val %02x\n", val));
         free(location);
         interruptFlag = val;
         return;

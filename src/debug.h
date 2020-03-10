@@ -5,7 +5,7 @@
 
 extern uint8_t enableDebugPrints;
 
-#define DEBUG
+// #define DEBUG
 // #define DEBUG_CPU
 // #define DEBUG_MEMORY
 // #define DEBUG_GRAPHICS

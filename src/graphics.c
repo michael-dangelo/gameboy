@@ -197,7 +197,8 @@ static void step(uint8_t ticks)
             else
             {
                 mode = VBLANK;
-                vblankInterruptRequest = 1;
+                if (vblankInterruptEnable)
+                    vblankInterruptRequest = 1;
             }
             break;
         case VBLANK:
@@ -302,7 +303,6 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             oamInterruptEnable = (val >> 5) & 1;
             vblankInterruptEnable = (val >> 4) & 1;
             hblankInterruptEnable = (val >> 3) & 1;
-            lineCompareFlag = (val >> 2) & 1;
             break;
         case 0xFF42:
             scrollY = val;
