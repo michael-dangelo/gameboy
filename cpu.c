@@ -7,7 +7,7 @@ static struct
 {
     uint8_t a, b, c, d, e, h, l, f;
     uint16_t pc, sp;
-    uint8_t m, t;
+    uint8_t m;
     uint8_t ime;
     uint8_t halted;
 } r;
@@ -29,10 +29,12 @@ uint8_t Cpu_step(void)
 {
     if (r.halted)
         return 4;
+    CPU_PRINT(("--------------\n"));
     uint8_t op = Mem_rb(r.pc++);
+    CPU_PRINT(("op %s\n", opName(op)));
     dispatch(op);
-    r.t = r.m * 4;
-    return r.t;
+    printCpu();
+    return r.m * 4;
 }
 
 // --- Instructions
@@ -77,8 +79,8 @@ static void LDD_AHLm(void) { r.a = Mem_rb(HL()); setHL(HL() - 1); r.m = 2; }
 
 // 16-bit loads
 static void LD_rrnn(uint8_t *high, uint8_t *low) { *low = Mem_rb(r.pc++); *high = Mem_rb(r.pc++); r.m = 3; }
-static void LD_SPnn(void) { r.sp = Mem_rw(r.pc); r.pc += 2; r.m = 2; }
-static void LD_nnmSP(void) { Mem_ww(Mem_rw(r.pc), r.sp); r.pc += 2; r.m = 3; }
+static void LD_SPnn(void) { r.sp = Mem_rw(r.pc); r.pc += 2; r.m = 3; }
+static void LD_nnmSP(void) { Mem_ww(Mem_rw(r.pc), r.sp); r.pc += 2; r.m = 5; }
 static void LD_SPHL(void) { r.sp = HL(); r.m = 2; }
 static void LD_HLSPdd(void) { int8_t d = Mem_rb(r.pc++); uint8_t lowSp = r.sp & 0xFF; setH(HCAdd(lowSp, d)); setHL(r.sp + d); lowSp += d; setZF(0); setCY((uint8_t)(lowSp - d) > lowSp); setN(0); r.m = 3; }
 static void PUSH(uint16_t val) { r.sp -= 2; Mem_ww(r.sp, val); r.m = 4; }
@@ -150,8 +152,8 @@ static void SRL_r(uint8_t *reg) { uint8_t v = *reg & 1; *reg >>= 1; setZF(*reg =
 static void SRL_HLm(void) { uint8_t v = Mem_rb(HL()) & 1; Mem_wb(HL(), Mem_rb(HL()) >> 1); setZF(Mem_rb(HL()) == 0); setCY(v == 1); setN(0); setH(0); r.m = 4; }
 
 // Single-bit
-static void BIT_nr(uint8_t n, uint8_t *reg) { setZF(!((*reg >> n) & 1)); r.m = 2; setN(0); setH(1); }
-static void BIT_nHLm(uint8_t n) { setZF(!((Mem_rb(HL()) >> n) & 1)); setN(0); setH(1); r.m = 3; }
+static void BIT_nr(uint8_t n, uint8_t *reg) { setZF(!((*reg >> n) & 1)); setN(0); setH(1); r.m = 2; }
+static void BIT_nHLm(uint8_t n) { setZF(!((Mem_rb(HL()) >> n) & 1)); setN(0); setH(1); r.m = 4; }
 static void SET_nr(uint8_t n, uint8_t *reg) { *reg |= 1 << n; r.m = 2; }
 static void SET_nHLm(uint8_t n) { Mem_wb(HL(), Mem_rb(HL()) | 1 << n); r.m = 4; }
 static void RES_nr(uint8_t n, uint8_t *reg) { *reg &= ~(1 << n); r.m = 2; }
@@ -160,7 +162,7 @@ static void RES_nHLm(uint8_t n) { Mem_wb(HL(), Mem_rb(HL()) & ~(1 << n)); r.m = 
 // Control
 static void NOP(void) { r.m = 1; }
 static void HALT(void) { r.halted = 1; r.m = 1; }
-static void STOP(void) { Mem_rb(r.pc++); }
+static void STOP(void) { Mem_rb(r.pc++); r.m = 1; }
 static void DI(void) { r.ime = 0; r.m = 1; }
 static void EI(void) { r.ime = 1; r.m = 1; }
 
