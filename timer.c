@@ -19,9 +19,6 @@ static uint8_t interruptRequest = 0;
 
 void Timer_step(uint8_t ticks)
 {
-    if (!timerEnable)
-        return;
-
     static uint8_t dividerCounter = 0;
     static uint16_t countCounter = 0;
     static uint16_t clockDivisors[] = {
@@ -32,19 +29,26 @@ void Timer_step(uint8_t ticks)
     if (dividerCounter >= 64)
     {
         divider++;
-        dividerCounter = 0;
+        dividerCounter -= 64;
     }
+
+    if (!timerEnable)
+        return;
+
     countCounter += ticks;
-    if (countCounter >= clockDivisors[inputClockSelect])
+    uint16_t divisor = clockDivisors[inputClockSelect];
+    while (countCounter >= divisor)
     {
         counter++;
         if (counter == 0)
         {
             counter = modulo;
+            TIMER_PRINT(("timer requesting interrupt\n"));
             interruptRequest = 1;
         }
-        countCounter = 0;
+        countCounter -= divisor;
     }
+    TIMER_PRINT(("timer counter %02x countCounter %04x\n", counter, countCounter));
 }
 
 uint8_t Timer_rb(uint16_t addr)
