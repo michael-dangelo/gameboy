@@ -121,6 +121,10 @@ uint8_t Mem_rb(uint16_t addr)
         MEM_PRINT(("read from unusable memory\n"));
         return 0xFF;
     }
+    else if (0xFF01 <= addr && addr <= 0xFF02)
+    {
+        location = strdup("serial port");
+    }
     else if (0xFF04 <= addr && addr <= 0xFF07)
     {
         free(location);
@@ -237,6 +241,10 @@ void Mem_wb(uint16_t addr, uint8_t val)
     {
         MEM_PRINT(("write to unusable memory\n"));
         return;
+    }
+    else if (0xFF01 <= addr && addr <= 0xFF02)
+    {
+        location = strdup("serial port");
     }
     else if (0xFF04 <= addr && addr <= 0xFF07)
     {

@@ -255,6 +255,7 @@ uint8_t Graphics_rb(uint16_t addr)
                   (spriteSize << 2) |
                   (spriteDisplayEnable << 1) |
                   (bgDisplay);
+            MEM_PRINT(("gpu read from control, val %02x\n", res));
             break;
         case 0xFF41:
             res = (lineCompareInterruptEnable << 6) |
@@ -263,21 +264,25 @@ uint8_t Graphics_rb(uint16_t addr)
                   (hblankInterruptEnable << 3) |
                   (lineCompareFlag << 2) |
                   (mode & 3);
+            MEM_PRINT(("gpu read from status, val %02x\n", res));
             break;
         case 0xFF42:
             res = scrollY;
+            MEM_PRINT(("gpu read from scrollY, val %02x\n", res));
             break;
         case 0xFF43:
             res = scrollX;
+            MEM_PRINT(("gpu read from scrollX, val %02x\n", res));
             break;
         case 0xFF44:
             res = line;
+            MEM_PRINT(("gpu read from line, val %02x\n", res));
             break;
         case 0xFF47:
             res = palette;
+            MEM_PRINT(("gpu read from palette, val %02x\n", res));
             break;
     }
-    MEM_PRINT(("reading from gpu addr %04x val %02x\n", addr, res));
     return res;
 }
 
@@ -297,27 +302,32 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             spriteSize = (val >> 2) & 1;
             spriteDisplayEnable = (val >> 1) & 1;
             bgDisplay = val & 1;
+            MEM_PRINT(("gpu write to lcd control, val %02x\n", val));
             break;
         case 0xFF41:
             lineCompareInterruptEnable = (val >> 6) & 1;
             oamInterruptEnable = (val >> 5) & 1;
             vblankInterruptEnable = (val >> 4) & 1;
             hblankInterruptEnable = (val >> 3) & 1;
+            MEM_PRINT(("gpu write to lcd status, val %02x\n", val));
             break;
         case 0xFF42:
             scrollY = val;
+            MEM_PRINT(("gpu write to scrollY, val %02x\n", val));
             break;
         case 0xFF43:
             scrollX = val;
+            MEM_PRINT(("gpu write to scrollX, val %02x\n", val));
             break;
         case 0xFF44:
             line = 0;
+            MEM_PRINT(("gpu write to line, val %02x\n", val));
             break;
         case 0xFF47:
             palette = val;
+            MEM_PRINT(("gpu write to bg palette, val %02x\n", val));
             break;
     }
-    MEM_PRINT(("writing to gpu addr %04x val %02x\n", addr, val));
 }
 
 uint8_t Graphics_vblankInterrupt(void)
