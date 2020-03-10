@@ -2,6 +2,7 @@
 
 #include "debug.h"
 #include "graphics.h"
+#include "input.h"
 #include "timer.h"
 
 #include <assert.h>
@@ -120,6 +121,14 @@ uint8_t Mem_rb(uint16_t addr)
     {
         MEM_PRINT(("read from unusable memory\n"));
         return 0xFF;
+    }
+    else if (addr == 0xFF00)
+    {
+        // joypad
+        free(location);
+        uint8_t val = Input_read();
+        MEM_PRINT(("read from joypad, val %02x\n", val));
+        return val;
     }
     else if (0xFF01 <= addr && addr <= 0xFF02)
     {
@@ -240,6 +249,14 @@ void Mem_wb(uint16_t addr, uint8_t val)
     else if (addr < 0xFF00)
     {
         MEM_PRINT(("write to unusable memory\n"));
+        return;
+    }
+    else if (addr == 0xFF00)
+    {
+        // joypad
+        free(location);
+        Input_write(val);
+        MEM_PRINT(("mem write to joypad, val %02x\n", val));
         return;
     }
     else if (0xFF01 <= addr && addr <= 0xFF02)

@@ -10,6 +10,7 @@ extern uint8_t enableDebugPrints;
 // #define DEBUG_MEMORY
 // #define DEBUG_GRAPHICS
 // #define DEBUG_TIMER
+#define DEBUG_INPUT
 #define DEBUG_INTERRUPTS
 // #define DISABLE_RENDER
 #define SKIP_BOOTROM
@@ -42,6 +43,12 @@ extern uint8_t enableDebugPrints;
 #define TIMER_PRINT(x) PRINT(x)
 #else
 #define TIMER_PRINT(x)
+#endif
+
+#ifdef DEBUG_INPUT
+#define INPUT_PRINT(x) PRINT(x)
+#else
+#define INPUT_PRINT(x)
 #endif
 
 #ifdef DEBUG_INTERRUPTS
