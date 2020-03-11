@@ -112,7 +112,7 @@ uint8_t Mem_rb(uint16_t addr)
             return 0xFF;
         uint8_t bankSelect = romRamModeSelect ? upperRomBankSelect : 0;
         assert(bankSelect <= 3);
-        uint8_t val = externalRam[addr - 0xA000 + (0x2000 * bankSelect)]
+        uint8_t val = externalRam[addr - 0xA000 + (0x2000 * bankSelect)];
         MEM_PRINT(("mem read external ram addr %04x val %02x", addr, val));
         free(location);
         return val;
