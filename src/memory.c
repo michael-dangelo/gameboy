@@ -8,8 +8,6 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #define RAM_SIZE 1 << 16
 #define MAX_CART_SIZE 1 << 21
@@ -18,6 +16,7 @@
 static uint8_t ram[RAM_SIZE];
 static uint8_t cart[MAX_CART_SIZE];
 static uint8_t externalRam[MAX_EXTERNAL_RAM_SIZE];
+
 static uint8_t inBootRom = 1;
 static uint8_t bootRom[0x100] = {
     0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
@@ -45,10 +44,65 @@ uint8_t interruptFlag = 0;
 uint8_t interruptEnable = 0;
 
 // MBC
+typedef enum
+{
+    ROM_ONLY = 0x00,
+    MBC1 = 0x01,
+    MBC1_RAM = 0x02,
+    MBC1_RAM_BATTERY = 0x03,
+    MBC3 = 0x11,
+    MBC3_RAM = 0x12,
+    MBC3_RAM_BATTERY = 0x13
+} CartridgeType;
+
+#define NUM_SUPPORTED 7
+static const CartridgeType supported[NUM_SUPPORTED] =
+{
+    ROM_ONLY,
+    MBC1, MBC1_RAM, MBC1_RAM_BATTERY,
+    MBC3, MBC3_RAM, MBC3_RAM_BATTERY
+};
+
+CartridgeType cartType = 0;
+
 uint8_t externalRamEnable = 0;
-uint8_t romBankSelect = 1;
-uint8_t upperRomBankSelect = 0;
+uint8_t romBankSelect = 0;
+uint8_t ramBankSelect = 0;
 uint8_t romRamModeSelect = 0;
+
+uint8_t isSupportedCartridge(uint8_t cartType)
+{
+    for (uint8_t i = 0; i < NUM_SUPPORTED; i++)
+        if (cartType == supported[i])
+            return 1;
+    printf("unsupported cartridge type %02x\n", cartType);
+    return 0;
+}
+
+uint8_t isMBC1(uint8_t cartType)
+{
+    return cartType == ROM_ONLY ||
+           cartType == MBC1 ||
+           cartType == MBC1_RAM ||
+           cartType == MBC1_RAM_BATTERY;
+}
+
+uint32_t translateMBCRomAddr(uint16_t addr)
+{
+    uint8_t bankSelect = romBankSelect;
+    if (!bankSelect)
+        bankSelect++;
+    if (isMBC1(cartType) && !romRamModeSelect)
+        bankSelect |= (ramBankSelect << 5);
+    return addr + (0x4000 * (bankSelect - 1));
+}
+
+uint16_t translateMBCRamAddr(uint16_t addr)
+{
+    uint8_t bankSelect = (isMBC1(cartType) && !romRamModeSelect) ? 0 : ramBankSelect;
+    assert(bankSelect <= 3);
+    return addr - 0xA000 + (0x2000 * bankSelect);
+}
 
 void Mem_loadCartridge(const char *cartFilename)
 {
@@ -68,8 +122,8 @@ void Mem_loadCartridge(const char *cartFilename)
         printf("Failed to close cart\n");
         exit(1);
     }
-    uint8_t cartType = cart[0x147];
-    assert(cartType == 0 || cartType == 1);
+    cartType = cart[0x147];
+    assert(isSupportedCartridge(cartType));
 #ifdef SKIP_BOOTROM
     inBootRom = 0;
 #endif
@@ -77,85 +131,71 @@ void Mem_loadCartridge(const char *cartFilename)
 
 uint8_t Mem_rb(uint16_t addr)
 {
-    uint8_t *mem = ram;
-    char *location = strdup("unknown");
-    const uint8_t msb = (addr & 0xF000) >> 12;
+    uint8_t val = 0;
     if (addr < 0x100 && inBootRom)
     {
-        mem = bootRom;
-        location = strdup("bootrom");
+        val = bootRom[addr];
+        MEM_READ("bootrom", addr, val);
     }
-    else if (msb < 0x4)
+    else if (addr < 0x4000)
     {
-        mem = cart;
-        location = strdup("cart rom bank 0");
+        val = cart[addr];
+        MEM_READ("cart rom", addr, val);
     }
-    else if (msb < 0x8)
+    else if (addr < 0x8000)
     {
-        uint8_t bankSelect = romBankSelect;
-        if (!romRamModeSelect)
-            bankSelect |= (upperRomBankSelect << 5);
-        MEM_PRINT(("mem read cartrom addr %04x rom bank %d\n", addr, bankSelect));
-        uint32_t cartAddr = addr + (0x4000 * (bankSelect - 1));
-        free(location);
-        return cart[cartAddr];
+        val = cart[translateMBCRomAddr(addr)];
+        MEM_READ("cart rom", addr, val);
     }
-    else if (msb < 0xA)
+    else if (addr < 0xA000)
     {
-        // vram
-        free(location);
-        return Graphics_rb(addr);
+        val = Graphics_rb(addr);
+        MEM_READ("gpu vram", addr, val);
     }
-    else if (msb < 0xC)
+    else if (addr < 0xC000)
     {
         if (!externalRamEnable)
             return 0xFF;
-        uint8_t bankSelect = romRamModeSelect ? upperRomBankSelect : 0;
-        assert(bankSelect <= 3);
-        uint8_t val = externalRam[addr - 0xA000 + (0x2000 * bankSelect)];
-        MEM_PRINT(("mem read external ram addr %04x val %02x", addr, val));
-        free(location);
-        return val;
+        val = externalRam[translateMBCRamAddr(addr)];
+        MEM_READ("external ram", addr, val);
     }
-    else if (msb < 0xE)
+    else if (addr < 0xE000)
     {
-        location = strdup("workingram");
+        val = ram[addr];
+        MEM_READ("working ram", addr, val);
     }
-    else if (msb < 0xF || addr < 0xFE00)
+    else if (addr < 0xFE00)
     {
-        addr -= 0x2000;
-        location = strdup("workingramecho");
+        val = ram[addr - 0x2000];
+        MEM_READ("working ram echo", addr, val);
     }
     else if (addr < 0xFEA0)
     {
-        location = strdup("oam");
+        val = Graphics_rb(addr);
+        MEM_READ("gpu oam", addr, val);
     }
     else if (addr < 0xFF00)
     {
-        MEM_PRINT(("read from unusable memory\n"));
-        free(location);
-        return 0xFF;
+        val = 0xFF;
+        MEM_READ("unusable memory", addr, val);
     }
     else if (addr == 0xFF00)
     {
-        // joypad
-        free(location);
-        uint8_t val = Input_read();
-        MEM_PRINT(("read from joypad, val %02x\n", val));
-        return val;
+        val = Input_read();
+        MEM_READ("joypad", addr, val);
     }
     else if (0xFF01 <= addr && addr <= 0xFF02)
     {
-        location = strdup("serial port");
+        val = ram[addr];
+        MEM_READ("serial ports", addr, val);
     }
     else if (0xFF04 <= addr && addr <= 0xFF07)
     {
-        free(location);
-        return Timer_rb(addr);
+        val = Timer_rb(addr);
+        MEM_READ("joypad", addr, val);
     }
     else if (addr == 0xFF0F)
     {
-        free(location);
         uint8_t vblankInterrupt = Graphics_vblankInterrupt();
         uint8_t lcdStatusInterrupt = Graphics_statusInterrupt();
         uint8_t timerInterrupt = Timer_interrupt();
@@ -164,184 +204,163 @@ uint8_t Mem_rb(uint16_t addr)
         interruptFlag |= lcdStatusInterrupt << 1;
         interruptFlag |= timerInterrupt << 2;
         interruptFlag |= joypadInterrupt << 4;
-        MEM_PRINT(("mem read interrupt flag, val %02x\n", interruptFlag));
-        return interruptFlag;
+        val = interruptFlag;
+        MEM_READ("interrupt flag", addr, val);
     }
     else if (addr == 0xFF24)
     {
-        location = strdup("volumecontrol");
+        val = ram[addr];
+        MEM_READ("volume control", addr, val);
     }
     else if (addr == 0xFF25)
     {
-        location = strdup("soundoutputselect");
+        val = ram[addr];
+        MEM_READ("sound output select", addr, val);
     }
     else if (addr == 0xFF26)
     {
-        location = strdup("soundenable");
+        val = ram[addr];
+        MEM_READ("sound enable", addr, val);
     }
     else if ((0xFF40 <= addr && addr <= 0xFF45) || (0xFF47 <= addr && addr <= 0xFF49))
     {
-        free(location);
-        return Graphics_rb(addr);
+        val = Graphics_rb(addr);
+        MEM_READ("gpu registers", addr, val);
     }
     else if (addr == 0xFF46)
     {
-        MEM_PRINT(("mem attempted read from dma request\n"));
+        printf("attempted read from dma request\n");
         assert(0);
     }
     else if (addr < 0xFF80)
     {
-        location = strdup("ioports");
+        val = ram[addr];
+        MEM_READ("unknown io port", addr, val);
     }
     else if (addr < 0xFFFF)
     {
-        location = strdup("highram");
+        val = ram[addr];
+        MEM_READ("high ram", addr, val);
     }
     else if (addr == 0xFFFF)
     {
-        MEM_PRINT(("mem read interrupt enable, val %02x\n", interruptEnable));
-        free(location);
-        return interruptEnable;
+        MEM_READ("interrupt enable", addr, val);
+        val = interruptEnable;
     }
-    uint8_t val = mem[addr];
-    MEM_PRINT(("%s read byte at %04x, val %02x\n", location, addr, val));
-    free(location);
     return val;
 }
 
 uint16_t Mem_rw(uint16_t addr)
 {
-    uint16_t val = Mem_rb(addr) + ((uint16_t)Mem_rb(addr + 1) << 8);
-    MEM_PRINT(("mem read word at %04x, val %04x\n", addr, val));
-    return val;
+    return Mem_rb(addr) + ((uint16_t)Mem_rb(addr + 1) << 8);
 }
 
 void Mem_wb(uint16_t addr, uint8_t val)
 {
-    char *location = strdup("unknown");
-    const uint8_t msb = (addr & 0xF000) >> 12;
-    if (msb < 0x2)
+    if (addr < 0x2000)
     {
-        free(location);
-        MEM_PRINT(("mem write to external ram enable, val %02x\n", val));
         externalRamEnable = val != 0;
-        return;
+        MEM_WRITE("external ram enable", addr, val);
     }
-    else if (msb < 0x4)
+    else if (addr < 0x4000)
     {
-        free(location);
-        MEM_PRINT(("mem write to rom bank select, val %02x\n", val));
-        romBankSelect = val & 0x1F;
-        if (romBankSelect == 0)
-            romBankSelect++;
-        return;
+        romBankSelect = val & 0x7F;
+        if (isMBC1(cartType))
+            romBankSelect &= 0x1F;
+        MEM_WRITE("rom bank select", addr, val);
     }
-    else if (msb < 0x6)
+    else if (addr < 0x6000)
     {
-        free(location);
-        MEM_PRINT(("mem write to ram bank select or upper bits of rom bank select, val %02x\n", val));
-        upperRomBankSelect = val & 3;
-        return;
+        ramBankSelect = val & 3;
+        MEM_WRITE("ram bank select/upper bits of rom bank select", addr, val);
     }
-    else if (msb < 0x8)
+    else if (addr < 0x8000)
     {
-        free(location);
-        MEM_PRINT(("mem write to rom/ram mode select, val %02x\n", val));
         romRamModeSelect = val & 1;
-        return;
+        MEM_WRITE("rom/ram mode select", addr, val);
     }
-    else if (msb < 0xA)
+    else if (addr < 0xA000)
     {
-        // vram
         Graphics_wb(addr, val);
-        free(location);
-        return;
+        MEM_WRITE("gpu vram", addr, val);
     }
-    else if (msb < 0xC)
+    else if (addr < 0xC000)
     {
         if (!externalRamEnable)
             return;
-        uint8_t bankSelect = romRamModeSelect ? upperRomBankSelect : 0;
-        assert(bankSelect <= 3);
-        MEM_PRINT(("mem write external ram addr %04x val %02x\n", addr, val));
-        externalRam[addr - 0xA000 + (0x2000 * bankSelect)] = val;
-        free(location);
-        return;
+        externalRam[translateMBCRamAddr(addr)] = val;
+        MEM_WRITE("external ram", addr, val);
     }
-    else if (msb < 0xE)
+    else if (addr < 0xE000)
     {
-        location = strdup("workingram");
+        ram[addr] = val;
+        MEM_WRITE("working ram", addr, val);
     }
-    else if (msb < 0xF || addr < 0xFE00)
+    else if (addr < 0xFE00)
     {
-        addr -= 0x2000;
-        location = strdup("workingramecho");
+        ram[addr - 0x2000] = val;
+        MEM_WRITE("working ram echo", addr, val);
     }
     else if (addr < 0xFEA0)
     {
-        location = strdup("oam");
+        Graphics_wb(addr, val);
+        MEM_WRITE("gpu oam", addr, val);
     }
     else if (addr < 0xFF00)
     {
-        free(location);
-        MEM_PRINT(("write to unusable memory\n"));
-        return;
+        MEM_WRITE("unusable memory", addr, val);
     }
     else if (addr == 0xFF00)
     {
-        // joypad
-        free(location);
         Input_write(val);
-        MEM_PRINT(("mem write to joypad, val %02x\n", val));
-        return;
+        MEM_WRITE("joypad", addr, val);
     }
     else if (0xFF01 <= addr && addr <= 0xFF02)
     {
-        location = strdup("serial port");
+        ram[addr] = val;
+        MEM_WRITE("serial ports", addr, val);
     }
     else if (0xFF04 <= addr && addr <= 0xFF07)
     {
         Timer_wb(addr, val);
-        free(location);
-        return;
+        MEM_WRITE("timer", addr, val);
     }
     else if (addr == 0xFF0F)
     {
-        MEM_PRINT(("mem write interrupt flag, val %02x\n", val));
-        INT_PRINT(("interrupt flag written, val %02x\n", val));
-        free(location);
         interruptFlag = val;
-        return;
+        MEM_WRITE("interrupt flag", addr, val);
+        INT_PRINT(("interrupt flag written, val %02x\n", val));
     }
     else if (addr == 0xFF24)
     {
-        location = strdup("volumecontrol");
+        ram[addr] = val;
+        MEM_WRITE("volume control", addr, val);
     }
     else if (addr == 0xFF25)
     {
-        location = strdup("soundoutputselect");
+        ram[addr] = val;
+        MEM_WRITE("sound output select", addr, val);
     }
     else if (addr == 0xFF26)
     {
-        location = strdup("soundenable");
+        ram[addr] = val;
+        MEM_WRITE("sound enable", addr, val);
     }
     else if ((0xFF40 <= addr && addr <= 0xFF45) || (0xFF47 <= addr && addr <= 0xFF49))
     {
         Graphics_wb(addr, val);
-        free(location);
-        return;
+        MEM_WRITE("gpu registers", addr, val);
     }
     else if (addr == 0xFF46)
     {
         uint16_t addr = (uint16_t)val << 8;
         const uint8_t *dmaAddress = 0;
-        MEM_PRINT(("mem write to dma request, val %02x addr %04x\n", val, addr));
         const uint8_t msb = (addr & 0xF000) >> 12;
         if (msb < 0x8)
         {
             dmaAddress = cart + addr;
             if (msb >= 0x4)
-                dmaAddress = cart + (addr + (0x4000 * (romBankSelect - 1)));
+                dmaAddress = cart + translateMBCRomAddr(addr);
         }
         else if (msb < 0xA)
         {
@@ -355,37 +374,32 @@ void Mem_wb(uint16_t addr, uint8_t val)
             dmaAddress = ram + addr;
         }
         Graphics_dma(dmaAddress);
-        free(location);
-        return;
+        MEM_WRITE("dma request", addr, val);
     }
     else if (addr == 0xFF50)
     {
-        location = strdup("disablebootromregister");
         inBootRom = !val;
+        MEM_WRITE("disable bootrom register", addr, val);
     }
     else if (addr < 0xFF80)
     {
-        location = strdup("ioports");
+        ram[addr] = val;
+        MEM_WRITE("unknown io port", addr, val);
     }
     else if (addr < 0xFFFF)
     {
-        location = strdup("highram");
+        ram[addr] = val;
+        MEM_WRITE("high ram", addr, val);
     }
     else if (addr == 0xFFFF)
     {
-        MEM_PRINT(("mem write interrupt enable, val %02x\n", val));
-        free(location);
         interruptEnable = val;
-        return;
+        MEM_WRITE("interrupt enable", addr, val);
     }
-    MEM_PRINT(("%s write byte at %04x val %02x\n", location, addr, val));
-    free(location);
-    ram[addr] = val;
 }
 
 void Mem_ww(uint16_t addr, uint16_t val)
 {
     Mem_wb(addr, val & 255);
     Mem_wb(addr + 1, val >> 8);
-    MEM_PRINT(("mem write word at %04x val %04x\n", addr, val));
 }

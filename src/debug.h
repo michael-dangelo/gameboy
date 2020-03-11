@@ -28,6 +28,8 @@ extern uint8_t enableDebugPrints;
 #else
 #define MEM_PRINT(x)
 #endif
+#define MEM_READ(location, addr, val) MEM_PRINT(("%s read %04x val %02x\n", location, addr, val))
+#define MEM_WRITE(location, addr, val) MEM_PRINT(("%s write %04x val %02x\n", location, addr, val))
 
 #ifdef DEBUG_GRAPHICS
 #define GPU_PRINT(x) PRINT(x)
