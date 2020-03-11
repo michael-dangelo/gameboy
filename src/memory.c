@@ -163,7 +163,7 @@ uint8_t Mem_rb(uint16_t addr)
     {
         location = strdup("soundenable");
     }
-    else if ((0xFF40 <= addr && addr <= 0xFF44) || addr == 0xFF47)
+    else if ((0xFF40 <= addr && addr <= 0xFF44) || (0xFF47 <= addr && addr <= 0xFF49))
     {
         return Graphics_rb(addr);
     }
@@ -296,7 +296,7 @@ void Mem_wb(uint16_t addr, uint8_t val)
     {
         location = strdup("soundenable");
     }
-    else if ((0xFF40 <= addr && addr <= 0xFF44) || addr == 0xFF47)
+    else if ((0xFF40 <= addr && addr <= 0xFF44) || (0xFF47 <= addr && addr <= 0xFF49))
     {
         Graphics_wb(addr, val);
         free(location);

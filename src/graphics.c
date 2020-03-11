@@ -20,6 +20,7 @@ static uint16_t clock = 0;
 
 static uint8_t s_fps = 60;
 static uint8_t s_scale = 3;
+static uint8_t colors[4] = {220, 192, 96, 0};
 static LARGE_INTEGER freq;
 
 typedef enum {
@@ -57,7 +58,13 @@ static uint8_t scrollX = 0;
 static uint8_t line = 0;
 
 // FF47 - BG Palette Data
-static uint8_t palette = 0;
+static uint8_t bgPalette = 0;
+
+// FF48 - Object Palette 0
+static uint8_t objPalette0 = 0;
+
+// FF49 - Object Palette 1
+static uint8_t objPalette1 = 0;
 
 // V-Blank Interrupt Request
 static uint8_t vblankInterruptRequest = 0;
@@ -103,7 +110,7 @@ static uint16_t tileLineAt(uint16_t addr, uint16_t yOffset)
     return vram[pixels] + ((uint16_t)vram[pixels + 1] << 8);
 }
 
-static uint8_t colorAt(uint16_t tileLine, uint8_t x)
+static uint8_t colorAt(uint16_t tileLine, uint8_t x, uint8_t palette)
 {
     uint8_t l = (tileLine >> 8) & 0xFF;
     uint8_t h = tileLine & 0xFF;
@@ -125,7 +132,7 @@ static void renderTiles(void)
     uint8_t x = scrollX & 7;
     for (uint8_t i = 0; i < 160; i++)
     {
-        uint8_t color = colorAt(tileLine, x);
+        uint8_t color = colorAt(tileLine, x, bgPalette);
         SDL_Point p;
         p.x = i;
         p.y = line;
@@ -141,7 +148,6 @@ static void renderTiles(void)
     }
     for (uint8_t i = 0; i < 4; i++)
     {
-        static uint8_t colors[4] = {220, 192, 96, 0};
         uint8_t color = colors[i];
         SDL_SetRenderDrawColor(renderer, color, color, color, 255);
         SDL_Point *points = colorPoints[i];
@@ -152,17 +158,40 @@ static void renderTiles(void)
 
 static void renderSprites(void)
 {
-    // printf("------------------------\n");
-    // for (uint16_t i = 0; i < 0xA0; i += 0x10)
-    // {
-    //     uint16_t addr = 0xFE00 + i;
-    //     printf("$%04x: ", addr);
-    //     for (uint8_t j = 0; j < 0xF; j += 2)
-    //     {
-    //         printf("%02x%02x", vram[addr + j], vram[addr+ j + 1]);
-    //     }
-    //     printf("\n");
-    // }
+    int colorIndex[4] = {0};
+    SDL_Point colorPoints[4][160] = {0};
+    for (uint16_t i = 0xFE00; i < 0xFEA0; i += 0x4)
+    {
+        uint8_t y = vram[i] - 16;
+        uint8_t x = vram[i + 1] - 8;
+        uint16_t tile = vram[i + 2] * 16;
+        uint8_t flags = vram[i + 3];
+
+        if (line < y || y + 8 < line)
+            continue;
+
+        uint8_t palette = (flags >> 4) & 1 ? objPalette1 : objPalette0;
+        uint8_t j = line - y;
+        uint16_t pixelsAddr = tile + (j * 2);
+        uint16_t pixels = vram[pixelsAddr] + ((uint16_t)vram[pixelsAddr + 1] << 8);
+        for (uint8_t i = 0; i < 8; i++)
+        {
+            uint8_t color = colorAt(pixels, i, palette);
+            SDL_Point p;
+            p.x = x + i;
+            p.y = y + j;
+            colorPoints[color][colorIndex[color]] = p;
+            colorIndex[color]++;
+        }
+    }
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        uint8_t color = colors[i];
+        SDL_SetRenderDrawColor(renderer, color, color, color, 255);
+        SDL_Point *points = colorPoints[i];
+        int count = colorIndex[i];
+        SDL_RenderDrawPoints(renderer, points, count);
+    }
 }
 
 static void renderScanline(void)
@@ -305,8 +334,16 @@ uint8_t Graphics_rb(uint16_t addr)
             MEM_PRINT(("gpu read from line, val %02x\n", res));
             break;
         case 0xFF47:
-            res = palette;
-            MEM_PRINT(("gpu read from palette, val %02x\n", res));
+            res = bgPalette;
+            MEM_PRINT(("gpu read from bg palette, val %02x\n", res));
+            break;
+        case 0xFF48:
+            res = objPalette0;
+            MEM_PRINT(("gpu read from obj palette 0, val %02x\n", res));
+            break;
+        case 0xFF49:
+            res = objPalette1;
+            MEM_PRINT(("gpu read from obj palette 1, val %02x\n", res));
             break;
     }
     return res;
@@ -354,8 +391,16 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             MEM_PRINT(("gpu write to line, val %02x\n", val));
             break;
         case 0xFF47:
-            palette = val;
+            bgPalette = val;
             MEM_PRINT(("gpu write to bg palette, val %02x\n", val));
+            break;
+        case 0xFF48:
+            objPalette0 = val;
+            MEM_PRINT(("gpu write to obj palette 0, val %02x\n", val));
+            break;
+        case 0xFF49:
+            objPalette1 = val;
+            MEM_PRINT(("gpu write to obj palette 1, val %02x\n", val));
             break;
     }
 }
