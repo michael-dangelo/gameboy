@@ -13,9 +13,11 @@
 
 #define RAM_SIZE 1 << 16
 #define MAX_CART_SIZE 1 << 21
+#define MAX_EXTERNAL_RAM_SIZE 1 << 15
 
 static uint8_t ram[RAM_SIZE];
 static uint8_t cart[MAX_CART_SIZE];
+static uint8_t externalRam[MAX_EXTERNAL_RAM_SIZE];
 static uint8_t inBootRom = 1;
 static uint8_t bootRom[0x100] = {
     0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
@@ -45,7 +47,7 @@ uint8_t interruptEnable = 0;
 // MBC
 uint8_t externalRamEnable = 0;
 uint8_t romBankSelect = 1;
-uint8_t ramBankSelect = 0;
+uint8_t upperRomBankSelect = 0;
 uint8_t romRamModeSelect = 0;
 
 void Mem_loadCartridge(const char *cartFilename)
@@ -90,8 +92,12 @@ uint8_t Mem_rb(uint16_t addr)
     }
     else if (msb < 0x8)
     {
-        MEM_PRINT(("mem read cartrom addr %04x rom bank %d\n", addr, romBankSelect));
-        uint32_t cartAddr = addr + (0x4000 * (romBankSelect - 1));
+        uint8_t bankSelect = romBankSelect;
+        if (!romRamModeSelect)
+            bankSelect |= (upperRomBankSelect << 5);
+        MEM_PRINT(("mem read cartrom addr %04x rom bank %d\n", addr, bankSelect));
+        uint32_t cartAddr = addr + (0x4000 * (bankSelect - 1));
+        free(location);
         return cart[cartAddr];
     }
     else if (msb < 0xA)
@@ -102,7 +108,14 @@ uint8_t Mem_rb(uint16_t addr)
     }
     else if (msb < 0xC)
     {
-        location = strdup("externalram");
+        if (!externalRamEnable)
+            return 0xFF;
+        uint8_t bankSelect = romRamModeSelect ? upperRomBankSelect : 0;
+        assert(bankSelect <= 3);
+        uint8_t val = externalRam[addr - 0xA000 + (0x2000 * bankSelect)]
+        MEM_PRINT(("mem read external ram addr %04x val %02x", addr, val));
+        free(location);
+        return val;
     }
     else if (msb < 0xE)
     {
@@ -120,6 +133,7 @@ uint8_t Mem_rb(uint16_t addr)
     else if (addr < 0xFF00)
     {
         MEM_PRINT(("read from unusable memory\n"));
+        free(location);
         return 0xFF;
     }
     else if (addr == 0xFF00)
@@ -167,6 +181,7 @@ uint8_t Mem_rb(uint16_t addr)
     }
     else if ((0xFF40 <= addr && addr <= 0xFF45) || (0xFF47 <= addr && addr <= 0xFF49))
     {
+        free(location);
         return Graphics_rb(addr);
     }
     else if (addr == 0xFF46)
@@ -207,12 +222,14 @@ void Mem_wb(uint16_t addr, uint8_t val)
     const uint8_t msb = (addr & 0xF000) >> 12;
     if (msb < 0x2)
     {
+        free(location);
         MEM_PRINT(("mem write to external ram enable, val %02x\n", val));
         externalRamEnable = val != 0;
         return;
     }
     else if (msb < 0x4)
     {
+        free(location);
         MEM_PRINT(("mem write to rom bank select, val %02x\n", val));
         romBankSelect = val & 0x1F;
         if (romBankSelect == 0)
@@ -221,12 +238,14 @@ void Mem_wb(uint16_t addr, uint8_t val)
     }
     else if (msb < 0x6)
     {
-        MEM_PRINT(("mem write to ram bank select or upper bits of rom bank, val %02x\n", val));
-        ramBankSelect = val & 3;
+        free(location);
+        MEM_PRINT(("mem write to ram bank select or upper bits of rom bank select, val %02x\n", val));
+        upperRomBankSelect = val & 3;
         return;
     }
     else if (msb < 0x8)
     {
+        free(location);
         MEM_PRINT(("mem write to rom/ram mode select, val %02x\n", val));
         romRamModeSelect = val & 1;
         return;
@@ -240,7 +259,14 @@ void Mem_wb(uint16_t addr, uint8_t val)
     }
     else if (msb < 0xC)
     {
-        location = strdup("externalram");
+        if (!externalRamEnable)
+            return;
+        uint8_t bankSelect = romRamModeSelect ? upperRomBankSelect : 0;
+        assert(bankSelect <= 3);
+        MEM_PRINT(("mem write external ram addr %04x val %02x\n", addr, val));
+        externalRam[addr - 0xA000 + (0x2000 * bankSelect)] = val;
+        free(location);
+        return;
     }
     else if (msb < 0xE)
     {
@@ -257,6 +283,7 @@ void Mem_wb(uint16_t addr, uint8_t val)
     }
     else if (addr < 0xFF00)
     {
+        free(location);
         MEM_PRINT(("write to unusable memory\n"));
         return;
     }
