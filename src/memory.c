@@ -143,9 +143,11 @@ uint8_t Mem_rb(uint16_t addr)
     {
         free(location);
         uint8_t vblankInterrupt = Graphics_vblankInterrupt();
+        uint8_t lcdStatusInterrupt = Graphics_statusInterrupt();
         uint8_t timerInterrupt = Timer_interrupt();
         uint8_t joypadInterrupt = Input_interrupt();
         interruptFlag |= vblankInterrupt;
+        interruptFlag |= lcdStatusInterrupt << 1;
         interruptFlag |= timerInterrupt << 2;
         interruptFlag |= joypadInterrupt << 4;
         MEM_PRINT(("mem read interrupt flag, val %02x\n", interruptFlag));
@@ -163,7 +165,7 @@ uint8_t Mem_rb(uint16_t addr)
     {
         location = strdup("soundenable");
     }
-    else if ((0xFF40 <= addr && addr <= 0xFF44) || (0xFF47 <= addr && addr <= 0xFF49))
+    else if ((0xFF40 <= addr && addr <= 0xFF45) || (0xFF47 <= addr && addr <= 0xFF49))
     {
         return Graphics_rb(addr);
     }
@@ -296,7 +298,7 @@ void Mem_wb(uint16_t addr, uint8_t val)
     {
         location = strdup("soundenable");
     }
-    else if ((0xFF40 <= addr && addr <= 0xFF44) || (0xFF47 <= addr && addr <= 0xFF49))
+    else if ((0xFF40 <= addr && addr <= 0xFF45) || (0xFF47 <= addr && addr <= 0xFF49))
     {
         Graphics_wb(addr, val);
         free(location);

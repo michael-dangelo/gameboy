@@ -16,6 +16,7 @@ static SDL_Surface *screen = NULL;
 static SDL_Renderer *renderer = NULL;
 
 static uint8_t vram[0x2000];
+static uint8_t oam[0xA0];
 static uint16_t clock = 0;
 
 static uint8_t s_fps = 60;
@@ -57,6 +58,9 @@ static uint8_t scrollX = 0;
 // FF44 - LDC Y-Coordinate
 static uint8_t line = 0;
 
+// FF45 - LY Compare
+static uint8_t lineCompare = 0;
+
 // FF47 - BG Palette Data
 static uint8_t bgPalette = 0;
 
@@ -68,6 +72,9 @@ static uint8_t objPalette1 = 0;
 
 // V-Blank Interrupt Request
 static uint8_t vblankInterruptRequest = 0;
+
+// Status Interrupt Request
+static uint8_t statusInterruptRequest = 0;
 
 void Graphics_init(void)
 {
@@ -160,12 +167,12 @@ static void renderSprites(void)
 {
     int colorIndex[4] = {0};
     SDL_Point colorPoints[4][160] = {0};
-    for (uint16_t i = 0xFE00; i < 0xFEA0; i += 0x4)
+    for (uint16_t i = 0; i < 0xA0; i += 0x4)
     {
-        uint8_t spriteY = vram[i] - 16;
-        uint8_t spriteX = vram[i + 1] - 8;
-        uint16_t tile = vram[i + 2] * 16;
-        uint8_t flags = vram[i + 3];
+        uint8_t spriteY = oam[i] - 16;
+        uint8_t spriteX = oam[i + 1] - 8;
+        uint16_t tile = oam[i + 2] * 16;
+        uint8_t flags = oam[i + 3];
 
         if (line < spriteY || spriteY + 7 < line)
             continue;
@@ -251,12 +258,25 @@ static void step(uint8_t ticks)
             if (line++ < 143)
             {
                 mode = OAM;
+                if (oamInterruptEnable)
+                {
+                    INT_PRINT(("graphics requesting oam status interrupt\n"));
+                    statusInterruptRequest = 1;
+                }
             }
             else
             {
                 mode = VBLANK;
-                INT_PRINT(("graphics requesting interrupt\n"));
+                INT_PRINT(("graphics requesting vblank interrupt\n"));
                 vblankInterruptRequest = 1;
+                if (vblankInterruptEnable)
+                    statusInterruptRequest = 1;
+            }
+            lineCompareFlag = line == lineCompare;
+            if (lineCompareInterruptEnable && lineCompareFlag)
+            {
+                INT_PRINT(("graphics requesting line compare status interrupt\n"));
+                statusInterruptRequest = 1;
             }
             break;
         case VBLANK:
@@ -264,10 +284,27 @@ static void step(uint8_t ticks)
                 return;
             clock = 0;
             line++;
+            lineCompareFlag = line == lineCompare;
+            if (lineCompareInterruptEnable && lineCompareFlag)
+            {
+                INT_PRINT(("graphics requesting line compare status interrupt\n"));
+                statusInterruptRequest = 1;
+            }
             if (line <= 153)
                 return;
             line = 0;
+            lineCompareFlag = line == lineCompare;
+            if (lineCompareInterruptEnable && lineCompareFlag)
+            {
+                INT_PRINT(("graphics requesting line compare status interrupt\n"));
+                statusInterruptRequest = 1;
+            }
             mode = OAM;
+            if (oamInterruptEnable)
+            {
+                INT_PRINT(("graphics requesting oam status interrupt\n"));
+                statusInterruptRequest = 1;
+            }
             render();
             break;
         case OAM:
@@ -284,6 +321,11 @@ static void step(uint8_t ticks)
 #ifndef DISABLE_RENDER
             renderScanline();
 #endif
+            if (hblankInterruptEnable)
+            {
+                INT_PRINT(("graphics requesting hblank interrupt\n"));
+                statusInterruptRequest = 1;
+            }
             break;
     }
     return;
@@ -303,6 +345,11 @@ uint8_t Graphics_rb(uint16_t addr)
     {
         res = vram[addr - 0x8000];
         MEM_PRINT(("gpu read from vram addr %04x, val %02x\n", addr, res));
+    }
+    else if (addr < 0xFEA0)
+    {
+        res = oam[addr - 0xFE00];
+        MEM_PRINT(("gpu read from oam addr %04x, val %02x\n", addr, res));
     }
     switch (addr)
     {
@@ -338,6 +385,10 @@ uint8_t Graphics_rb(uint16_t addr)
             res = line;
             MEM_PRINT(("gpu read from line, val %02x\n", res));
             break;
+        case 0xFF45:
+            res = lineCompare;
+            MEM_PRINT(("gpu read from lineCompare, val %02x\n", res));
+            break;
         case 0xFF47:
             res = bgPalette;
             MEM_PRINT(("gpu read from bg palette, val %02x\n", res));
@@ -362,7 +413,12 @@ void Graphics_wb(uint16_t addr, uint8_t val)
         vram[addr - 0x8000] = val;
         return;
     }
-
+    else if (addr < 0xFEA0)
+    {
+        MEM_PRINT(("gpu write to oam addr %04x, val %02x\n", addr, val));
+        oam[addr - 0xFE00] = val;
+        return;
+    }
     switch (addr)
     {
         case 0xFF40:
@@ -395,6 +451,10 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             line = 0;
             MEM_PRINT(("gpu write to line, val %02x\n", val));
             break;
+        case 0xFF45:
+            lineCompare = val;
+            MEM_PRINT(("gpu write to lineCompare, val %02x\n", val));
+            break;
         case 0xFF47:
             bgPalette = val;
             MEM_PRINT(("gpu write to bg palette, val %02x\n", val));
@@ -417,8 +477,15 @@ uint8_t Graphics_vblankInterrupt(void)
     return interrupt;
 }
 
+uint8_t Graphics_statusInterrupt(void)
+{
+    uint8_t interrupt = statusInterruptRequest;
+    statusInterruptRequest = 0;
+    return interrupt;
+}
+
 void Graphics_dma(const uint8_t *dmaAddress)
 {
-    GPU_PRINT(("graphics dma copy from address %04x", dmaAddress));
-    memcpy(vram + 0xFE00, dmaAddress, 0xA0);
+    GPU_PRINT(("graphics dma copy from address %p", dmaAddress));
+    memcpy(oam, dmaAddress, 0xA0);
 }
