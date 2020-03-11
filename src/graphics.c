@@ -433,15 +433,10 @@ uint8_t Graphics_rb(uint16_t addr)
 {
     uint8_t res = 0;
     if (addr < 0xA000)
-    {
         res = vram[addr - 0x8000];
-        MEM_PRINT(("gpu read from vram addr %04x, val %02x\n", addr, res));
-    }
     else if (addr < 0xFEA0)
-    {
         res = oam[addr - 0xFE00];
-        MEM_PRINT(("gpu read from oam addr %04x, val %02x\n", addr, res));
-    }
+
     switch (addr)
     {
         case 0xFF40:
@@ -453,7 +448,7 @@ uint8_t Graphics_rb(uint16_t addr)
                   (spriteSize << 2) |
                   (spriteDisplayEnable << 1) |
                   (bgDisplay);
-            MEM_PRINT(("gpu read from control, val %02x\n", res));
+            GPU_PRINT(("gpu read control, val %02x\n", res));
             break;
         case 0xFF41:
             res = (lineCompareInterruptEnable << 6) |
@@ -462,35 +457,35 @@ uint8_t Graphics_rb(uint16_t addr)
                   (hblankInterruptEnable << 3) |
                   (lineCompareFlag << 2) |
                   (mode & 3);
-            MEM_PRINT(("gpu read from status, val %02x\n", res));
+            GPU_PRINT(("gpu read status, val %02x\n", res));
             break;
         case 0xFF42:
             res = scrollY;
-            MEM_PRINT(("gpu read from scrollY, val %02x\n", res));
+            GPU_PRINT(("gpu read scrollY, val %02x\n", res));
             break;
         case 0xFF43:
             res = scrollX;
-            MEM_PRINT(("gpu read from scrollX, val %02x\n", res));
+            GPU_PRINT(("gpu read scrollX, val %02x\n", res));
             break;
         case 0xFF44:
             res = line;
-            MEM_PRINT(("gpu read from line, val %02x\n", res));
+            GPU_PRINT(("gpu read line, val %02x\n", res));
             break;
         case 0xFF45:
             res = lineCompare;
-            MEM_PRINT(("gpu read from lineCompare, val %02x\n", res));
+            GPU_PRINT(("gpu read lineCompare, val %02x\n", res));
             break;
         case 0xFF47:
             res = bgPalette;
-            MEM_PRINT(("gpu read from bg palette, val %02x\n", res));
+            GPU_PRINT(("gpu read bg palette, val %02x\n", res));
             break;
         case 0xFF48:
             res = objPalette0;
-            MEM_PRINT(("gpu read from obj palette 0, val %02x\n", res));
+            GPU_PRINT(("gpu read obj palette 0, val %02x\n", res));
             break;
         case 0xFF49:
             res = objPalette1;
-            MEM_PRINT(("gpu read from obj palette 1, val %02x\n", res));
+            GPU_PRINT(("gpu read obj palette 1, val %02x\n", res));
             break;
     }
     return res;
@@ -499,17 +494,10 @@ uint8_t Graphics_rb(uint16_t addr)
 void Graphics_wb(uint16_t addr, uint8_t val)
 {
     if (addr < 0xA000)
-    {
-        MEM_PRINT(("gpu write to vram addr %04x, val %02x\n", addr, val));
         vram[addr - 0x8000] = val;
-        return;
-    }
     else if (addr < 0xFEA0)
-    {
-        MEM_PRINT(("gpu write to oam addr %04x, val %02x\n", addr, val));
         oam[addr - 0xFE00] = val;
-        return;
-    }
+
     switch (addr)
     {
         case 0xFF40:
@@ -521,42 +509,42 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             spriteSize = (val >> 2) & 1;
             spriteDisplayEnable = (val >> 1) & 1;
             bgDisplay = val & 1;
-            MEM_PRINT(("gpu write to lcd control, val %02x\n", val));
+            GPU_PRINT(("gpu write lcd control, val %02x\n", val));
             break;
         case 0xFF41:
             lineCompareInterruptEnable = (val >> 6) & 1;
             oamInterruptEnable = (val >> 5) & 1;
             vblankInterruptEnable = (val >> 4) & 1;
             hblankInterruptEnable = (val >> 3) & 1;
-            MEM_PRINT(("gpu write to lcd status, val %02x\n", val));
+            GPU_PRINT(("gpu write lcd status, val %02x\n", val));
             break;
         case 0xFF42:
             scrollY = val;
-            MEM_PRINT(("gpu write to scrollY, val %02x\n", val));
+            GPU_PRINT(("gpu write scrollY, val %02x\n", val));
             break;
         case 0xFF43:
             scrollX = val;
-            MEM_PRINT(("gpu write to scrollX, val %02x\n", val));
+            GPU_PRINT(("gpu write scrollX, val %02x\n", val));
             break;
         case 0xFF44:
             line = 0;
-            MEM_PRINT(("gpu write to line, val %02x\n", val));
+            GPU_PRINT(("gpu write line, val %02x\n", val));
             break;
         case 0xFF45:
             lineCompare = val;
-            MEM_PRINT(("gpu write to lineCompare, val %02x\n", val));
+            GPU_PRINT(("gpu write lineCompare, val %02x\n", val));
             break;
         case 0xFF47:
             bgPalette = val;
-            MEM_PRINT(("gpu write to bg palette, val %02x\n", val));
+            GPU_PRINT(("gpu write bg palette, val %02x\n", val));
             break;
         case 0xFF48:
             objPalette0 = val;
-            MEM_PRINT(("gpu write to obj palette 0, val %02x\n", val));
+            GPU_PRINT(("gpu write obj palette 0, val %02x\n", val));
             break;
         case 0xFF49:
             objPalette1 = val;
-            MEM_PRINT(("gpu write to obj palette 1, val %02x\n", val));
+            GPU_PRINT(("gpu write obj palette 1, val %02x\n", val));
             break;
     }
 }
