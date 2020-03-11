@@ -27,8 +27,6 @@ void Cpu_init(void)
 #endif
 }
 
-static uint16_t BREAK = 0x0272;
-
 uint8_t Cpu_step(void)
 {
     if (r.halted)
@@ -38,8 +36,6 @@ uint8_t Cpu_step(void)
     CPU_PRINT(("op %s\n", opName(op)));
     dispatch(op);
     printCpu();
-    if (r.pc == BREAK)
-        enableDebugPrints = 1;
     return r.m * 4;
 }
 

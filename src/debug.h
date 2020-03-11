@@ -5,22 +5,17 @@
 
 extern uint8_t enableDebugPrints;
 
-// #define DEBUG
 // #define DEBUG_CPU
 // #define DEBUG_MEMORY
 // #define DEBUG_GRAPHICS
 // #define DEBUG_TIMER
-#define DEBUG_INPUT
-#define DEBUG_INTERRUPTS
+// #define DEBUG_INPUT
+// #define DEBUG_INTERRUPTS
 // #define DISABLE_RENDER
 // #define DEBUG_TILES
 #define SKIP_BOOTROM
 
-#ifdef DEBUG
 #define PRINT(x) if (enableDebugPrints) printf x
-#else
-#define PRINT(x)
-#endif
 
 #ifdef DEBUG_CPU
 #define CPU_PRINT(x) PRINT(x)
