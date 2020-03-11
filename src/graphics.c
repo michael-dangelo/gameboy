@@ -20,7 +20,7 @@ static uint16_t clock = 0;
 
 static uint8_t s_fps = 60;
 static uint8_t s_scale = 3;
-static uint8_t colors[4] = {220, 192, 96, 0};
+static uint8_t s_colors[4] = {220, 192, 96, 0};
 static LARGE_INTEGER freq;
 
 typedef enum {
@@ -148,7 +148,7 @@ static void renderTiles(void)
     }
     for (uint8_t i = 0; i < 4; i++)
     {
-        uint8_t color = colors[i];
+        uint8_t color = s_colors[i];
         SDL_SetRenderDrawColor(renderer, color, color, color, 255);
         SDL_Point *points = colorPoints[i];
         int count = colorIndex[i];
@@ -162,31 +162,36 @@ static void renderSprites(void)
     SDL_Point colorPoints[4][160] = {0};
     for (uint16_t i = 0xFE00; i < 0xFEA0; i += 0x4)
     {
-        uint8_t y = vram[i] - 16;
-        uint8_t x = vram[i + 1] - 8;
+        uint8_t spriteY = vram[i] - 16;
+        uint8_t spriteX = vram[i + 1] - 8;
         uint16_t tile = vram[i + 2] * 16;
         uint8_t flags = vram[i + 3];
 
-        if (line < y || y + 8 < line)
+        if (line < spriteY || spriteY + 7 < line)
             continue;
 
         uint8_t palette = (flags >> 4) & 1 ? objPalette1 : objPalette0;
-        uint8_t j = line - y;
-        uint16_t pixelsAddr = tile + (j * 2);
+        uint8_t flipX = (flags >> 5) & 1;
+        uint8_t flipY = (flags >> 6) & 1;
+
+        uint8_t y = line - spriteY;
+        uint16_t pixelsAddr = tile + ((flipY ? 7 - y : y) * 2);
         uint16_t pixels = vram[pixelsAddr] + ((uint16_t)vram[pixelsAddr + 1] << 8);
-        for (uint8_t i = 0; i < 8; i++)
+        for (uint8_t x = 0; x < 8; x++)
         {
-            uint8_t color = colorAt(pixels, i, palette);
+            uint8_t color = colorAt(pixels, flipX ? 7 - x : x, palette);
+            if (!color)
+                continue;
             SDL_Point p;
-            p.x = x + i;
-            p.y = y + j;
+            p.x = spriteX + x;
+            p.y = spriteY + y;
             colorPoints[color][colorIndex[color]] = p;
             colorIndex[color]++;
         }
     }
     for (uint8_t i = 0; i < 4; i++)
     {
-        uint8_t color = colors[i];
+        uint8_t color = s_colors[i];
         SDL_SetRenderDrawColor(renderer, color, color, color, 255);
         SDL_Point *points = colorPoints[i];
         int count = colorIndex[i];
