@@ -151,9 +151,16 @@ static void renderTiles(void)
     SDL_Point colorPoints[4][160] = {0};
     uint16_t tileMap = bgTileMapSelect ? 0x1C00 : 0x1800;
     uint16_t tileMapOffset = tileMap + (((uint8_t)(line + scrollY) / 8) * 32);
-    uint16_t yOffset = ((line + scrollY) & 7) * 2;
+    uint16_t tileMapRowEnd = tileMapOffset + 32;
+    uint16_t wrappedLine = line + scrollY;
+    if (wrappedLine >= 144)
+        wrappedLine -= 144;
+    uint16_t yOffset = (wrappedLine & 7) * 2;
     uint16_t tileMapIndex = scrollX / 8;
-    uint16_t tileLine = tileLineAt(tileMapOffset + tileMapIndex, yOffset);
+    uint16_t tileMapAddr = tileMapOffset + tileMapIndex;
+    if (tileMapAddr >= tileMapRowEnd)
+        tileMapAddr -= 32;
+    uint16_t tileLine = tileLineAt(tileMapAddr, yOffset);
     uint8_t x = scrollX & 7;
     for (uint8_t i = 0; i < 160; i++)
     {
@@ -168,7 +175,10 @@ static void renderTiles(void)
         {
             x = 0;
             tileMapIndex++;
-            tileLine = tileLineAt(tileMapOffset + tileMapIndex, yOffset);
+            tileMapAddr = tileMapOffset + tileMapIndex;
+            if (tileMapAddr >= tileMapRowEnd)
+                tileMapAddr -= 32;
+            tileLine = tileLineAt(tileMapAddr, yOffset);
         }
     }
     for (uint8_t i = 0; i < 4; i++)
@@ -405,9 +415,9 @@ void drawDebugTiles(void)
     }
     SDL_SetRenderDrawColor(debug_renderer, 0xAA, 0x33, 0x66, 255);
     SDL_RenderDrawLine(debug_renderer, scrollX, scrollY, scrollX + 160, scrollY);
-    SDL_RenderDrawLine(debug_renderer, scrollX + 160, scrollY, scrollX + 160, scrollY + 142);
-    SDL_RenderDrawLine(debug_renderer, scrollX + 160, scrollY + 142, scrollX, scrollY + 142);
-    SDL_RenderDrawLine(debug_renderer, scrollX, scrollY + 142, scrollX, scrollY);
+    SDL_RenderDrawLine(debug_renderer, scrollX + 160, scrollY, scrollX + 160, scrollY + 144);
+    SDL_RenderDrawLine(debug_renderer, scrollX + 160, scrollY + 144, scrollX, scrollY + 144);
+    SDL_RenderDrawLine(debug_renderer, scrollX, scrollY + 144, scrollX, scrollY);
     SDL_RenderPresent(debug_renderer);
 }
 #endif
