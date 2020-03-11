@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-void Mem_loadCartridge(const char *cartFilename);
+void Memory_init(void);
 uint8_t Mem_rb(uint16_t addr);
 uint16_t Mem_rw(uint16_t addr);
 void Mem_wb(uint16_t addr, uint8_t val);

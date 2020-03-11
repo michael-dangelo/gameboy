@@ -1,3 +1,4 @@
+#include "cartridge.h"
 #include "cpu.h"
 #include "graphics.h"
 #include "memory.h"
@@ -17,8 +18,9 @@ int main(int argc, char **argv)
     }
 
     Cpu_init();
-    Mem_loadCartridge(argv[1]);
+    Cartridge_load(argv[1]);
     Graphics_init();
+    Memory_init();
 
     while (1)
     {
