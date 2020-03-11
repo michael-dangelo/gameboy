@@ -167,6 +167,11 @@ uint8_t Mem_rb(uint16_t addr)
     {
         return Graphics_rb(addr);
     }
+    else if (addr == 0xFF46)
+    {
+        MEM_PRINT(("mem attempted read from dma request\n"));
+        assert(0);
+    }
     else if (addr < 0xFF80)
     {
         location = strdup("ioports");
@@ -297,6 +302,33 @@ void Mem_wb(uint16_t addr, uint8_t val)
         free(location);
         return;
     }
+    else if (addr == 0xFF46)
+    {
+        uint16_t addr = (uint16_t)val << 8;
+        const uint8_t *dmaAddress = 0;
+        MEM_PRINT(("mem write to dma request, val %02x addr %04x\n", val, addr));
+        const uint8_t msb = (addr & 0xF000) >> 12;
+        if (msb < 0x8)
+        {
+            dmaAddress = cart + addr;
+            if (msb >= 0x4)
+                dmaAddress = cart + (addr + (0x4000 * (romBankSelect - 1)));
+        }
+        else if (msb < 0xA)
+        {
+            printf("attempted dma from vram\n");
+            assert(0);
+        }
+        else if (addr <= 0xF100)
+        {
+            if (msb >= 0xE)
+                addr -= 0x2000;
+            dmaAddress = ram + addr;
+        }
+        Graphics_dma(dmaAddress);
+        free(location);
+        return;
+    }
     else if (addr == 0xFF50)
     {
         location = strdup("disablebootromregister");
@@ -316,7 +348,6 @@ void Mem_wb(uint16_t addr, uint8_t val)
         free(location);
         interruptEnable = val;
         return;
-
     }
     MEM_PRINT(("%s write byte at %04x val %02x\n", location, addr, val));
     free(location);

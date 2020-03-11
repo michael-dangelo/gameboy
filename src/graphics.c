@@ -113,7 +113,7 @@ static uint8_t colorAt(uint16_t tileLine, uint8_t x)
     return color;
 }
 
-static void renderScanline()
+static void renderTiles(void)
 {
     int colorIndex[4] = {0};
     SDL_Point colorPoints[4][160] = {0};
@@ -148,6 +148,27 @@ static void renderScanline()
         int count = colorIndex[i];
         SDL_RenderDrawPoints(renderer, points, count);
     }
+}
+
+static void renderSprites(void)
+{
+    // printf("------------------------\n");
+    // for (uint16_t i = 0; i < 0xA0; i += 0x10)
+    // {
+    //     uint16_t addr = 0xFE00 + i;
+    //     printf("$%04x: ", addr);
+    //     for (uint8_t j = 0; j < 0xF; j += 2)
+    //     {
+    //         printf("%02x%02x", vram[addr + j], vram[addr+ j + 1]);
+    //     }
+    //     printf("\n");
+    // }
+}
+
+static void renderScanline(void)
+{
+    renderTiles();
+    renderSprites();
 }
 #endif
 
@@ -344,4 +365,10 @@ uint8_t Graphics_vblankInterrupt(void)
     uint8_t interrupt = vblankInterruptRequest;
     vblankInterruptRequest = 0;
     return interrupt;
+}
+
+void Graphics_dma(const uint8_t *dmaAddress)
+{
+    GPU_PRINT(("graphics dma copy from address %04x", dmaAddress));
+    memcpy(vram + 0xFE00, dmaAddress, 0xA0);
 }
