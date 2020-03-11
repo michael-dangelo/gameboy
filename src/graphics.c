@@ -112,7 +112,7 @@ void Graphics_init(void)
 static uint16_t tileLineAt(uint16_t addr, uint16_t yOffset)
 {
     uint16_t tile = tileDataSelect ? (uint16_t)vram[addr] * 16
-                                   : 0x1000 + ((int16_t)vram[addr] * 16);
+                                   : 0x1000 + ((int8_t)vram[addr] * 16);
     uint16_t pixels = tile + yOffset;
     return vram[pixels] + ((uint16_t)vram[pixels + 1] << 8);
 }
@@ -165,6 +165,9 @@ static void renderTiles(void)
 
 static void renderSprites(void)
 {
+    if (!spriteDisplayEnable)
+        return;
+
     int colorIndex[4] = {0};
     SDL_Point colorPoints[4][160] = {0};
     for (uint16_t i = 0; i < 0xA0; i += 0x4)
