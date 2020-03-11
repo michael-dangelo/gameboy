@@ -1,6 +1,7 @@
 #include "graphics.h"
 
 #include "debug.h"
+#include "input.h"
 
 #include "SDL/SDL.h"
 
@@ -155,8 +156,17 @@ void render(void)
     SDL_RenderPresent(renderer);
     SDL_Event event;
     while (SDL_PollEvent(&event))
-        if (event.type == SDL_QUIT)
-            exit(0);
+    {
+        switch(event.type)
+        {
+            case SDL_QUIT:
+                exit(0);
+            case SDL_KEYDOWN:
+            case SDL_KEYUP:
+                Input_pressed(&event);
+                break;
+        }
+    }
 
     static LARGE_INTEGER start, end;
     static uint8_t started = 0;
