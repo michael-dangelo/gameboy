@@ -142,10 +142,12 @@ uint8_t Mem_rb(uint16_t addr)
     else if (addr == 0xFF0F)
     {
         free(location);
-        uint8_t timerInterrupt = Timer_interrupt();
         uint8_t vblankInterrupt = Graphics_vblankInterrupt();
-        interruptFlag |= timerInterrupt << 2;
+        uint8_t timerInterrupt = Timer_interrupt();
+        uint8_t joypadInterrupt = Input_interrupt();
         interruptFlag |= vblankInterrupt;
+        interruptFlag |= timerInterrupt << 2;
+        interruptFlag |= joypadInterrupt << 4;
         MEM_PRINT(("mem read interrupt flag, val %02x\n", interruptFlag));
         return interruptFlag;
     }

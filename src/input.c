@@ -20,6 +20,9 @@ uint8_t b = 1;
 uint8_t right = 1;
 uint8_t a = 1;
 
+// Joypad Interrupt
+uint8_t interruptRequest = 0;
+
 void Input_pressed(SDL_Event *event)
 {
     uint8_t pressed = event->type == SDL_KEYDOWN;
@@ -28,34 +31,50 @@ void Input_pressed(SDL_Event *event)
     {
         case SDLK_RETURN:
             start = !pressed;
+            if (pressed && buttonsSelect)
+                interruptRequest = 1;
             INPUT_PRINT(("start pressed %d\n", pressed));
             break;
         case SDLK_DOWN:
             down = !pressed;
+            if (pressed && directionsSelect)
+                interruptRequest = 1;
             INPUT_PRINT(("down pressed %d\n", pressed));
             break;
         case SDLK_ESCAPE:
             select = !pressed;
+            if (pressed && buttonsSelect)
+                interruptRequest = 1;
             INPUT_PRINT(("select pressed %d\n", pressed));
             break;
         case SDLK_UP:
             up = !pressed;
+            if (pressed && directionsSelect)
+                interruptRequest = 1;
             INPUT_PRINT(("up pressed %d\n", pressed));
             break;
         case SDLK_BACKSPACE:
             b = !pressed;
+            if (pressed && buttonsSelect)
+                interruptRequest = 1;
             INPUT_PRINT(("b pressed %d\n", pressed));
             break;
         case SDLK_LEFT:
             left = !pressed;
+            if (pressed && directionsSelect)
+                interruptRequest = 1;
             INPUT_PRINT(("left pressed %d\n", pressed));
             break;
         case SDLK_SPACE:
             a = !pressed;
+            if (pressed && buttonsSelect)
+                interruptRequest = 1;
             INPUT_PRINT(("a pressed %d\n", pressed));
             break;
         case SDLK_RIGHT:
             right = !pressed;
+            if (pressed && directionsSelect)
+                interruptRequest = 1;
             INPUT_PRINT(("right pressed %d\n", pressed));
             break;
     }
@@ -82,4 +101,11 @@ void Input_write(uint8_t val)
     directionsSelect = (val >> 4) & 1;
     INPUT_PRINT(("input write buttonsselect %d directionSelect %d val %02x\n",
         buttonsSelect, directionsSelect, val));
+}
+
+uint8_t Input_interrupt(void)
+{
+    uint8_t interrupt = interruptRequest;
+    interruptRequest = 0;
+    return interrupt;
 }
