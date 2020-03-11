@@ -13,6 +13,7 @@ extern uint8_t enableDebugPrints;
 #define DEBUG_INPUT
 #define DEBUG_INTERRUPTS
 // #define DISABLE_RENDER
+// #define DEBUG_TILES
 #define SKIP_BOOTROM
 
 #ifdef DEBUG
