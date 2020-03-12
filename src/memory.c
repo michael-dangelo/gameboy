@@ -132,7 +132,8 @@ uint8_t Mem_rb(uint16_t addr)
         val = ram[addr];
         MEM_READ("sound enable", addr, val);
     }
-    else if ((0xFF40 <= addr && addr <= 0xFF45) || (0xFF47 <= addr && addr <= 0xFF49))
+    else if ((0xFF40 <= addr && addr <= 0xFF45) || (0xFF47 <= addr && addr <= 0xFF49) ||
+        addr == 0xFF4A || addr == 0xFF4B)
     {
         val = Graphics_rb(addr);
         MEM_READ("gpu registers", addr, val);
@@ -252,7 +253,8 @@ void Mem_wb(uint16_t addr, uint8_t val)
         ram[addr] = val;
         MEM_WRITE("sound enable", addr, val);
     }
-    else if ((0xFF40 <= addr && addr <= 0xFF45) || (0xFF47 <= addr && addr <= 0xFF49))
+    else if ((0xFF40 <= addr && addr <= 0xFF45) || (0xFF47 <= addr && addr <= 0xFF49) ||
+        addr == 0xFF4A || addr == 0xFF4B)
     {
         Graphics_wb(addr, val);
         MEM_WRITE("gpu registers", addr, val);

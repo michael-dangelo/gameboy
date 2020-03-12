@@ -56,11 +56,11 @@ static uint8_t vblankInterruptEnable = 0;
 static uint8_t hblankInterruptEnable = 0;
 static uint8_t lineCompareFlag = 0;
 
-// FF42 - Scroll Y
-static uint8_t scrollY = 0;
+// FF42 - BG Scroll Y
+static uint8_t bgScrollY = 0;
 
-// FF43 - Scroll X
-static uint8_t scrollX = 0;
+// FF43 - BG Scroll X
+static uint8_t bgScrollX = 0;
 
 // FF44 - LDC Y-Coordinate
 static uint8_t line = 0;
@@ -76,6 +76,12 @@ static uint8_t objPalette0 = 0;
 
 // FF49 - Object Palette 1
 static uint8_t objPalette1 = 0;
+
+// FF4A - Window Scroll Y
+static uint8_t windowScrollY;
+
+// FF4B - Window Scroll X
+static uint8_t windowScrollX;
 
 // V-Blank Interrupt Request
 static uint8_t vblankInterruptRequest = 0;
@@ -145,23 +151,23 @@ static uint8_t colorAt(uint16_t tileLine, uint8_t x, uint8_t palette)
     return color;
 }
 
-static void renderTiles(void)
+static void renderBg()
 {
     int colorIndex[4] = {0};
     SDL_Point colorPoints[4][160] = {0};
-    uint16_t tileMap = bgTileMapSelect ? 0x1C00 : 0x1800;
-    uint16_t tileMapOffset = tileMap + (((uint8_t)(line + scrollY) / 8) * 32);
+    uint16_t bgMap = bgTileMapSelect ? 0x1C00 : 0x1800;
+    uint16_t tileMapOffset = bgMap + (((uint8_t)(line + bgScrollY) / 8) * 32);
     uint16_t tileMapRowEnd = tileMapOffset + 32;
-    uint16_t wrappedLine = line + scrollY;
+    uint16_t wrappedLine = line + bgScrollY;
     if (wrappedLine >= 144)
         wrappedLine -= 144;
     uint16_t yOffset = (wrappedLine & 7) * 2;
-    uint16_t tileMapIndex = scrollX / 8;
+    uint16_t tileMapIndex = bgScrollX / 8;
     uint16_t tileMapAddr = tileMapOffset + tileMapIndex;
     if (tileMapAddr >= tileMapRowEnd)
         tileMapAddr -= 32;
     uint16_t tileLine = tileLineAt(tileMapAddr, yOffset);
-    uint8_t x = scrollX & 7;
+    uint8_t x = bgScrollX & 7;
     for (uint8_t i = 0; i < 160; i++)
     {
         uint8_t color = colorAt(tileLine, x, bgPalette);
@@ -178,6 +184,44 @@ static void renderTiles(void)
             tileMapAddr = tileMapOffset + tileMapIndex;
             if (tileMapAddr >= tileMapRowEnd)
                 tileMapAddr -= 32;
+            tileLine = tileLineAt(tileMapAddr, yOffset);
+        }
+    }
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        uint8_t color = s_colors[i];
+        SDL_SetRenderDrawColor(renderer, color, color, color, 255);
+        SDL_Point *points = colorPoints[i];
+        int count = colorIndex[i];
+        SDL_RenderDrawPoints(renderer, points, count);
+    }
+}
+
+static void renderWindow()
+{
+    int colorIndex[4] = {0};
+    SDL_Point colorPoints[4][160] = {0};
+    uint16_t windowMap = windowTileMapSelect ? 0x1C00 : 0x1800;
+    uint16_t tileMapOffset = windowMap + ((line / 8) * 32);
+    uint16_t yOffset = (line & 7) * 2;
+    uint16_t tileMapIndex = 0;
+    uint16_t tileMapAddr = tileMapOffset + tileMapIndex;
+    uint16_t tileLine = tileLineAt(tileMapAddr, yOffset);
+    uint8_t x = 0;
+    for (uint8_t i = 0; i < 160; i++)
+    {
+        uint8_t color = colorAt(tileLine, x, bgPalette);
+        SDL_Point p;
+        p.x = i + windowScrollX - 7;
+        p.y = line + windowScrollY;
+        colorPoints[color][colorIndex[color]] = p;
+        colorIndex[color]++;
+        x++;
+        if (x == 8)
+        {
+            x = 0;
+            tileMapIndex++;
+            tileMapAddr = tileMapOffset + tileMapIndex;
             tileLine = tileLineAt(tileMapAddr, yOffset);
         }
     }
@@ -239,7 +283,11 @@ static void renderSprites(void)
 
 static void renderScanline(void)
 {
-    renderTiles();
+    renderBg();
+    if (windowDisplayEnable)
+    {
+        renderWindow();
+    }
     renderSprites();
 #ifdef DEBUG_TILES
     drawDebugTiles();
@@ -414,10 +462,10 @@ void drawDebugTiles(void)
         }
     }
     SDL_SetRenderDrawColor(debug_renderer, 0xAA, 0x33, 0x66, 255);
-    SDL_RenderDrawLine(debug_renderer, scrollX, scrollY, scrollX + 160, scrollY);
-    SDL_RenderDrawLine(debug_renderer, scrollX + 160, scrollY, scrollX + 160, scrollY + 144);
-    SDL_RenderDrawLine(debug_renderer, scrollX + 160, scrollY + 144, scrollX, scrollY + 144);
-    SDL_RenderDrawLine(debug_renderer, scrollX, scrollY + 144, scrollX, scrollY);
+    SDL_RenderDrawLine(debug_renderer, bgScrollX, bgScrollY, bgScrollX + 160, bgScrollY);
+    SDL_RenderDrawLine(debug_renderer, bgScrollX + 160, bgScrollY, bgScrollX + 160, bgScrollY + 144);
+    SDL_RenderDrawLine(debug_renderer, bgScrollX + 160, bgScrollY + 144, bgScrollX, bgScrollY + 144);
+    SDL_RenderDrawLine(debug_renderer, bgScrollX, bgScrollY + 144, bgScrollX, bgScrollY);
     SDL_RenderPresent(debug_renderer);
 }
 #endif
@@ -460,12 +508,12 @@ uint8_t Graphics_rb(uint16_t addr)
             GPU_PRINT(("gpu read status, val %02x\n", res));
             break;
         case 0xFF42:
-            res = scrollY;
-            GPU_PRINT(("gpu read scrollY, val %02x\n", res));
+            res = bgScrollY;
+            GPU_PRINT(("gpu read bg scrollY, val %02x\n", res));
             break;
         case 0xFF43:
-            res = scrollX;
-            GPU_PRINT(("gpu read scrollX, val %02x\n", res));
+            res = bgScrollX;
+            GPU_PRINT(("gpu read bg scrollX, val %02x\n", res));
             break;
         case 0xFF44:
             res = line;
@@ -486,6 +534,14 @@ uint8_t Graphics_rb(uint16_t addr)
         case 0xFF49:
             res = objPalette1;
             GPU_PRINT(("gpu read obj palette 1, val %02x\n", res));
+            break;
+        case 0xFF4A:
+            res = windowScrollY;
+            GPU_PRINT(("gpu read window scrollY, val %02x\n", res));
+            break;
+        case 0xFF4B:
+            res = windowScrollX;
+            GPU_PRINT(("gpu read window scrollX, val %02x\n", res));
             break;
     }
     return res;
@@ -519,12 +575,12 @@ void Graphics_wb(uint16_t addr, uint8_t val)
             GPU_PRINT(("gpu write lcd status, val %02x\n", val));
             break;
         case 0xFF42:
-            scrollY = val;
-            GPU_PRINT(("gpu write scrollY, val %02x\n", val));
+            bgScrollY = val;
+            GPU_PRINT(("gpu write bg scrollY, val %02x\n", val));
             break;
         case 0xFF43:
-            scrollX = val;
-            GPU_PRINT(("gpu write scrollX, val %02x\n", val));
+            bgScrollX = val;
+            GPU_PRINT(("gpu write bg scrollX, val %02x\n", val));
             break;
         case 0xFF44:
             line = 0;
@@ -545,6 +601,14 @@ void Graphics_wb(uint16_t addr, uint8_t val)
         case 0xFF49:
             objPalette1 = val;
             GPU_PRINT(("gpu write obj palette 1, val %02x\n", val));
+            break;
+        case 0xFF4A:
+            windowScrollY = val;
+            GPU_PRINT(("gpu write window scrollY, val %02x\n", val));
+            break;
+        case 0xFF4B:
+            windowScrollX = val;
+            GPU_PRINT(("gpu write window scrollX, val %02x\n", val));
             break;
     }
 }
