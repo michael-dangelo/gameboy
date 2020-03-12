@@ -5,78 +5,108 @@
 #include "SDL/SDL.h"
 
 // Select buttons
-uint8_t buttonsSelect = 1;
+static uint8_t buttonsSelect = 1;
 
 // Select direction keys
-uint8_t directionsSelect = 1;
+static uint8_t directionsSelect = 1;
 
 // Controls
-uint8_t down = 1;
-uint8_t start = 1;
-uint8_t up = 1;
-uint8_t select = 1;
-uint8_t left = 1;
-uint8_t b = 1;
-uint8_t right = 1;
-uint8_t a = 1;
+static uint8_t down = 1;
+static uint8_t up = 1;
+static uint8_t left = 1;
+static uint8_t right = 1;
+static uint8_t start = 1;
+static uint8_t select = 1;
+static uint8_t b = 1;
+static uint8_t a = 1;
+
+enum Control
+{
+    DOWN,
+    UP,
+    LEFT,
+    RIGHT,
+    START,
+    SELECT,
+    A,
+    B,
+    NUM_CONTROLS
+};
+
+static SDL_Keycode controlMapping[NUM_CONTROLS] =
+{
+    SDLK_DOWN,
+    SDLK_UP,
+    SDLK_LEFT,
+    SDLK_RIGHT,
+    SDLK_RETURN,
+    SDLK_ESCAPE,
+    SDLK_1,
+    SDLK_2
+};
 
 // Joypad Interrupt
-uint8_t interruptRequest = 0;
+static uint8_t interruptRequest = 0;
 
 void Input_pressed(SDL_Event *event)
 {
     uint8_t pressed = event->type == SDL_KEYDOWN;
-
-    switch (event->key.keysym.sym)
+    SDL_Keycode key = event->key.keysym.sym;
+    if (controlMapping[DOWN] == key)
     {
-        case SDLK_RETURN:
-            start = !pressed;
-            if (pressed && buttonsSelect)
-                interruptRequest = 1;
-            INPUT_PRINT(("start pressed %d\n", pressed));
-            break;
-        case SDLK_DOWN:
-            down = !pressed;
-            if (pressed && directionsSelect)
-                interruptRequest = 1;
-            INPUT_PRINT(("down pressed %d\n", pressed));
-            break;
-        case SDLK_ESCAPE:
-            select = !pressed;
-            if (pressed && buttonsSelect)
-                interruptRequest = 1;
-            INPUT_PRINT(("select pressed %d\n", pressed));
-            break;
-        case SDLK_UP:
-            up = !pressed;
-            if (pressed && directionsSelect)
-                interruptRequest = 1;
-            INPUT_PRINT(("up pressed %d\n", pressed));
-            break;
-        case SDLK_BACKSPACE:
-            b = !pressed;
-            if (pressed && buttonsSelect)
-                interruptRequest = 1;
-            INPUT_PRINT(("b pressed %d\n", pressed));
-            break;
-        case SDLK_LEFT:
-            left = !pressed;
-            if (pressed && directionsSelect)
-                interruptRequest = 1;
-            INPUT_PRINT(("left pressed %d\n", pressed));
-            break;
-        case SDLK_SPACE:
-            a = !pressed;
-            if (pressed && buttonsSelect)
-                interruptRequest = 1;
-            INPUT_PRINT(("a pressed %d\n", pressed));
-            break;
-        case SDLK_RIGHT:
-            right = !pressed;
-            if (pressed && directionsSelect)
-                interruptRequest = 1;
-            INPUT_PRINT(("right pressed %d\n", pressed));
-            break;
+        down = !pressed;
+        if (pressed && directionsSelect)
+            interruptRequest = 1;
+        INPUT_PRINT(("down pressed %d\n", pressed));
+    }
+    else if (controlMapping[UP] == key)
+    {
+        up = !pressed;
+        if (pressed && directionsSelect)
+            interruptRequest = 1;
+        INPUT_PRINT(("up pressed %d\n", pressed));
+    }
+    else if (controlMapping[LEFT] == key)
+    {
+        left = !pressed;
+        if (pressed && directionsSelect)
+            interruptRequest = 1;
+        INPUT_PRINT(("left pressed %d\n", pressed));
+    }
+    else if (controlMapping[RIGHT] == key)
+    {
+        right = !pressed;
+        if (pressed && directionsSelect)
+            interruptRequest = 1;
+        INPUT_PRINT(("right pressed %d\n", pressed));
+    }
+    else if (controlMapping[START] == key)
+    {
+        start = !pressed;
+        if (pressed && buttonsSelect)
+            interruptRequest = 1;
+        INPUT_PRINT(("start pressed %d\n", pressed));
+    }
+    else if (controlMapping[SELECT] == key)
+    {
+        select = !pressed;
+        if (pressed && buttonsSelect)
+            interruptRequest = 1;
+        INPUT_PRINT(("select pressed %d\n", pressed));
+    }
+    else if (controlMapping[A] == key)
+    {
+        a = !pressed;
+        if (pressed && buttonsSelect)
+            interruptRequest = 1;
+        INPUT_PRINT(("a pressed %d\n", pressed));
+    }
+    else if (controlMapping[B] == key)
+    {
+        b = !pressed;
+        if (pressed && buttonsSelect)
+            interruptRequest = 1;
+        INPUT_PRINT(("b pressed %d\n", pressed));
     }
 }
 
