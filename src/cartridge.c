@@ -184,7 +184,7 @@ void Cartridge_wb(uint16_t addr, uint8_t val)
 {
     if (addr < 0x2000)
     {
-        externalRamEnable = val != 0;
+        externalRamEnable = (val & 0xF) == 0xA;
         return;
     }
     else if (addr < 0x4000)
@@ -235,10 +235,7 @@ void saveFileName(char buffer[])
             return;
         if (a == '.')
         {
-            buffer[i] = '.';
-            buffer[i + 1] = 's';
-            buffer[i + 2] = 'a';
-            buffer[i + 3] = 'v';
+            strncpy(buffer + i, ".sav", 5);
             break;
         }
         buffer[i] = cartName[i];
