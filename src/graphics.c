@@ -296,16 +296,13 @@ static void renderScanline(void)
 
     uint8_t bgColor0 = bgPalette & 3;
     renderPoints(s_colors[bgColor0], bgPoints[bgColor0], bgIndex[bgColor0]);
-    renderPoints(s_colors[bgColor0], windowPoints[bgColor0], windowIndex[bgColor0]);
     for (uint8_t i = 0; i < NUM_COLORS; i++)
         renderPoints(s_colors[i], spritePoints[1][i], spriteIndex[1][i]);
     for (uint8_t i = 0; i < NUM_COLORS; i++)
-    {
-        if (i == bgColor0)
-            continue;
-        renderPoints(s_colors[i], bgPoints[i], bgIndex[i]);
+        if (i != bgColor0)
+            renderPoints(s_colors[i], bgPoints[i], bgIndex[i]);
+    for (uint8_t i = 0; i < NUM_COLORS; i++)
         renderPoints(s_colors[i], windowPoints[i], windowIndex[i]);
-    }
     for (uint8_t i = 0; i < NUM_COLORS; i++)
         renderPoints(s_colors[i], spritePoints[0][i], spriteIndex[0][i]);
 #ifdef DEBUG_TILES
