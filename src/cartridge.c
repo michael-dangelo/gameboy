@@ -71,6 +71,12 @@ uint8_t isMBC3(uint8_t cartType)
            cartType == MBC3_RAM_BATTERY;
 }
 
+uint8_t isBatteryRam(uint8_t cartType)
+{
+    return cartType == MBC1_RAM_BATTERY ||
+           cartType == MBC3_RAM_BATTERY;
+}
+
 uint32_t translateMBCRomAddr(uint16_t addr)
 {
     uint8_t bankSelect = romBankSelect;
@@ -234,13 +240,10 @@ void loadSaveFile(void)
     saveFileName(saveName);
     FILE *saveFile = fopen(saveName, "rb");
     if (!saveFile)
-    {
-        printf("Failed to open save file %s\n", saveName);
-        exit(1);
-    }
+        return;
     if (!fread(externalRam, 1, ramSize, saveFile))
     {
-        printf("Failed to write to save file\n");
+        printf("Failed to read save file\n");
         exit(1);
     }
     if (fclose(saveFile))
@@ -252,6 +255,8 @@ void loadSaveFile(void)
 
 void Cartridge_writeSaveFile(void)
 {
+    if (!(isBatteryRam(cartType) && ramSize > 0))
+        return;
     char saveName[101] = {};
     saveFileName(saveName);
     FILE *saveFile = fopen(saveName, "wb");
