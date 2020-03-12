@@ -31,6 +31,11 @@ static const CartridgeType supported[NUM_SUPPORTED] =
     MBC3, MBC3_RAM, MBC3_RAM_BATTERY
 };
 
+static const uint16_t romBanksCfgs[8] =
+{
+    0, 4, 8, 16, 32, 64, 128, 256
+};
+
 static const uint16_t externalRamSizes[4] =
 {
     0, 2048, 8192, 32768
@@ -38,6 +43,7 @@ static const uint16_t externalRamSizes[4] =
 
 static char cartName[101];
 static CartridgeType cartType = 0;
+static uint16_t romBanks = 0;
 static uint16_t ramSize = 0;
 
 static uint8_t externalRamEnable = 0;
@@ -84,6 +90,10 @@ uint32_t translateMBCRomAddr(uint16_t addr)
         bankSelect++;
     if (isMBC1(cartType) && !romRamModeSelect)
         bankSelect |= (ramBankSelect << 5);
+    if (!romBanks)
+        bankSelect = 1;
+    else if (bankSelect > romBanks)
+        bankSelect = romBanks;
     return addr + (0x4000 * (bankSelect - 1));
 }
 
@@ -142,6 +152,7 @@ void Cartridge_load(const char *filename)
         exit(1);
     }
     cartType = cart[0x147];
+    romBanks = romBanksCfgs[cart[0x148]];
     ramSize = externalRamSizes[cart[0x149]];
     assert(isSupportedCartridge(cartType));
     loadSaveFile();
