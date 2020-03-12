@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <time.h>
 
 #define MAX_CART_SIZE 1 << 21
 #define MAX_EXTERNAL_RAM_SIZE 1 << 15
@@ -35,7 +36,8 @@ uint8_t externalRamEnable = 0;
 uint8_t romBankSelect = 0;
 uint8_t ramBankSelect = 0;
 uint8_t romRamModeSelect = 0;
-uint8_t clockLatch = 0;
+
+struct tm timeRegister = {};
 
 uint8_t isSupportedCartridge(uint8_t cartType)
 {
@@ -54,6 +56,13 @@ uint8_t isMBC1(uint8_t cartType)
            cartType == MBC1_RAM_BATTERY;
 }
 
+uint8_t isMBC3(uint8_t cartType)
+{
+    return cartType == MBC3 ||
+           cartType == MBC3_RAM ||
+           cartType == MBC3_RAM_BATTERY;
+}
+
 uint32_t translateMBCRomAddr(uint16_t addr)
 {
     uint8_t bankSelect = romBankSelect;
@@ -70,6 +79,33 @@ uint32_t translateMBCRamAddr(uint16_t addr)
     assert(bankSelect <= 3);
     return addr - 0xA000 + (0x2000 * bankSelect);
 }
+
+void latchTime(void)
+{
+    time_t rawTime;
+    time(&rawTime);
+    timeRegister = *localtime(&rawTime);
+}
+
+uint8_t clockValue()
+{
+    switch (ramBankSelect)
+    {
+        case 0x8:
+            return timeRegister.tm_sec;
+        case 0x9:
+            return timeRegister.tm_min;
+        case 0xA:
+            return timeRegister.tm_hour;
+        case 0xB:
+            return timeRegister.tm_yday & 0xFF;
+        case 0xC:
+            return 0;
+    }
+    assert(0);
+    return 0;
+}
+
 void Cartridge_load(const char *filename)
 {
     FILE *cartridge = fopen(filename, "rb");
@@ -104,6 +140,8 @@ uint8_t Cartridge_rb(uint16_t addr)
     }
     else if (addr < 0xC000)
     {
+        if (isMBC3(cartType) && ramBankSelect >= 0x8)
+            return clockValue();
         if (!externalRamEnable)
             return 0xFF;
         return externalRam[translateMBCRamAddr(addr)];
@@ -128,17 +166,15 @@ void Cartridge_wb(uint16_t addr, uint8_t val)
     }
     else if (addr < 0x6000)
     {
-        ramBankSelect = val & 3;
+        ramBankSelect = val;
         return;
     }
     else if (addr < 0x8000)
     {
-        if (isMBC1(cartType))
-        {
-            romRamModeSelect = val & 1;
-            return;
-        }
-        // TODO: RTC implementation here
+        if (isMBC3(cartType) && !romRamModeSelect && val)
+            latchTime();
+        romRamModeSelect = val & 1;
+        return;
     }
     else if (addr < 0xC000)
     {
