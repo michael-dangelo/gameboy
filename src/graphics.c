@@ -26,10 +26,14 @@ static uint8_t vram[0x2000];
 static uint8_t oam[0xA0];
 static uint16_t clock = 0;
 
+#define WIDTH 160
+#define HEIGHT 144
 static uint8_t s_fps = 60;
 static uint8_t s_scale = 3;
-static uint8_t s_colors[4] = {220, 192, 96, 0};
 static LARGE_INTEGER freq;
+
+#define NUM_COLORS 4
+static uint8_t s_colors[NUM_COLORS] = {220, 192, 96, 0};
 
 typedef enum {
     HBLANK,
@@ -98,7 +102,7 @@ void Graphics_init(void)
     }
     atexit(SDL_Quit);
     window = SDL_CreateWindow(
-        "Gameboy", 500, 250,  160 * s_scale, 144 * s_scale, 0
+        "Gameboy", 500, 250,  WIDTH * s_scale, HEIGHT * s_scale, 0
     );
     if (!window)
     {
@@ -141,26 +145,31 @@ static uint16_t tileLineAt(uint16_t addr, uint16_t yOffset)
     return vram[pixels] + ((uint16_t)vram[pixels + 1] << 8);
 }
 
-static uint8_t colorAt(uint16_t tileLine, uint8_t x, uint8_t palette)
+static uint8_t colorIndexAt(uint16_t tileLine, uint8_t x)
 {
     uint8_t l = (tileLine >> 8) & 0xFF;
     uint8_t h = tileLine & 0xFF;
     uint8_t pixelOffset = 7 - x; // leftmost pixel is 7th bit
-    uint8_t colorIndex = ((l >> pixelOffset) & 1) | (((h >> pixelOffset) & 1) << 1);
+    return ((l >> pixelOffset) & 1) | (((h >> pixelOffset) & 1) << 1);
+}
+
+static uint8_t colorAt(uint16_t tileLine, uint8_t x, uint8_t palette)
+{
+    uint8_t colorIndex = colorIndexAt(tileLine, x);
     uint8_t color = (palette >> (colorIndex * 2)) & 3;
     return color;
 }
 
-static void renderBg()
+static void renderBg(
+    int colorIndex[NUM_COLORS],
+    SDL_Point colorPoints[NUM_COLORS][WIDTH])
 {
-    int colorIndex[4] = {0};
-    SDL_Point colorPoints[4][160] = {0};
     uint16_t bgMap = bgTileMapSelect ? 0x1C00 : 0x1800;
     uint16_t tileMapOffset = bgMap + (((uint8_t)(line + bgScrollY) / 8) * 32);
     uint16_t tileMapRowEnd = tileMapOffset + 32;
     uint16_t wrappedLine = line + bgScrollY;
-    if (wrappedLine >= 144)
-        wrappedLine -= 144;
+    if (wrappedLine >= HEIGHT)
+        wrappedLine -= HEIGHT;
     uint16_t yOffset = (wrappedLine & 7) * 2;
     uint16_t tileMapIndex = bgScrollX / 8;
     uint16_t tileMapAddr = tileMapOffset + tileMapIndex;
@@ -168,7 +177,7 @@ static void renderBg()
         tileMapAddr -= 32;
     uint16_t tileLine = tileLineAt(tileMapAddr, yOffset);
     uint8_t x = bgScrollX & 7;
-    for (uint8_t i = 0; i < 160; i++)
+    for (uint8_t i = 0; i < WIDTH; i++)
     {
         uint8_t color = colorAt(tileLine, x, bgPalette);
         SDL_Point p;
@@ -187,20 +196,12 @@ static void renderBg()
             tileLine = tileLineAt(tileMapAddr, yOffset);
         }
     }
-    for (uint8_t i = 0; i < 4; i++)
-    {
-        uint8_t color = s_colors[i];
-        SDL_SetRenderDrawColor(renderer, color, color, color, 255);
-        SDL_Point *points = colorPoints[i];
-        int count = colorIndex[i];
-        SDL_RenderDrawPoints(renderer, points, count);
-    }
 }
 
-static void renderWindow()
+static void renderWindow(
+    int colorIndex[NUM_COLORS],
+    SDL_Point colorPoints[NUM_COLORS][WIDTH])
 {
-    int colorIndex[4] = {0};
-    SDL_Point colorPoints[4][160] = {0};
     uint16_t windowMap = windowTileMapSelect ? 0x1C00 : 0x1800;
     uint16_t tileMapOffset = windowMap + ((line / 8) * 32);
     uint16_t yOffset = (line & 7) * 2;
@@ -208,7 +209,7 @@ static void renderWindow()
     uint16_t tileMapAddr = tileMapOffset + tileMapIndex;
     uint16_t tileLine = tileLineAt(tileMapAddr, yOffset);
     uint8_t x = 0;
-    for (uint8_t i = 0; i < 160; i++)
+    for (uint8_t i = 0; i < WIDTH; i++)
     {
         uint8_t color = colorAt(tileLine, x, bgPalette);
         SDL_Point p;
@@ -225,23 +226,15 @@ static void renderWindow()
             tileLine = tileLineAt(tileMapAddr, yOffset);
         }
     }
-    for (uint8_t i = 0; i < 4; i++)
-    {
-        uint8_t color = s_colors[i];
-        SDL_SetRenderDrawColor(renderer, color, color, color, 255);
-        SDL_Point *points = colorPoints[i];
-        int count = colorIndex[i];
-        SDL_RenderDrawPoints(renderer, points, count);
-    }
 }
 
-static void renderSprites(void)
+static void renderSprites(
+    int colorIndex[2][NUM_COLORS],
+    SDL_Point colorPoints[2][NUM_COLORS][WIDTH])
 {
     if (!spriteDisplayEnable)
         return;
 
-    int colorIndex[4] = {0};
-    SDL_Point colorPoints[4][160] = {0};
     for (uint16_t i = 0; i < 0xA0; i += 0x4)
     {
         uint8_t spriteY = oam[i] - 16;
@@ -255,40 +248,59 @@ static void renderSprites(void)
         uint8_t palette = (flags >> 4) & 1 ? objPalette1 : objPalette0;
         uint8_t flipX = (flags >> 5) & 1;
         uint8_t flipY = (flags >> 6) & 1;
+        uint8_t priority = (flags >> 7) & 1;
 
         uint8_t y = line - spriteY;
         uint16_t pixelsAddr = tile + ((flipY ? 7 - y : y) * 2);
         uint16_t pixels = vram[pixelsAddr] + ((uint16_t)vram[pixelsAddr + 1] << 8);
         for (uint8_t x = 0; x < 8; x++)
         {
-            uint8_t color = colorAt(pixels, flipX ? 7 - x : x, palette);
-            if (!color)
+            if (!colorIndexAt(pixels, flipX ? 7 - x : x))
                 continue;
+            uint8_t color = colorAt(pixels, flipX ? 7 - x : x, palette);
             SDL_Point p;
             p.x = spriteX + x;
             p.y = spriteY + y;
-            colorPoints[color][colorIndex[color]] = p;
-            colorIndex[color]++;
+            colorPoints[priority][color][colorIndex[priority][color]] = p;
+            colorIndex[priority][color]++;
         }
     }
-    for (uint8_t i = 0; i < 4; i++)
-    {
-        uint8_t color = s_colors[i];
-        SDL_SetRenderDrawColor(renderer, color, color, color, 255);
-        SDL_Point *points = colorPoints[i];
-        int count = colorIndex[i];
-        SDL_RenderDrawPoints(renderer, points, count);
-    }
+}
+
+static void renderPoints(uint8_t color, SDL_Point points[], int count)
+{
+    SDL_SetRenderDrawColor(renderer, color, color, color, 255);
+    SDL_RenderDrawPoints(renderer, points, count);
 }
 
 static void renderScanline(void)
 {
-    renderBg();
+    int bgIndex[NUM_COLORS] = {0};
+    int windowIndex[NUM_COLORS] = {0};
+    int spriteIndex[2][NUM_COLORS] = {0};
+    SDL_Point bgPoints[NUM_COLORS][WIDTH] = {0};
+    SDL_Point windowPoints[NUM_COLORS][WIDTH] = {0};
+    SDL_Point spritePoints[2][NUM_COLORS][WIDTH] = {0};
+
+    renderBg(bgIndex, bgPoints);
     if (windowDisplayEnable)
+        renderWindow(windowIndex, windowPoints);
+    renderSprites(spriteIndex, spritePoints);
+
+    uint8_t bgColor0 = bgPalette & 3;
+    renderPoints(s_colors[bgColor0], bgPoints[bgColor0], bgIndex[bgColor0]);
+    renderPoints(s_colors[bgColor0], windowPoints[bgColor0], windowIndex[bgColor0]);
+    for (uint8_t i = 0; i < NUM_COLORS; i++)
+        renderPoints(s_colors[i], spritePoints[1][i], spriteIndex[1][i]);
+    for (uint8_t i = 0; i < NUM_COLORS; i++)
     {
-        renderWindow();
+        if (i == bgColor0)
+            continue;
+        renderPoints(s_colors[i], bgPoints[i], bgIndex[i]);
+        renderPoints(s_colors[i], windowPoints[i], windowIndex[i]);
     }
-    renderSprites();
+    for (uint8_t i = 0; i < NUM_COLORS; i++)
+        renderPoints(s_colors[i], spritePoints[0][i], spriteIndex[0][i]);
 #ifdef DEBUG_TILES
     drawDebugTiles();
 #endif
@@ -426,8 +438,8 @@ void drawDebugTiles(void)
     uint16_t tileMap = bgTileMapSelect ? 0x1C00 : 0x1800;
     for (uint16_t line_ = 0; line_ < 256; line_++)
     {
-        int colorIndex[4] = {0};
-        SDL_Point colorPoints[4][256] = {0};
+        int colorIndex[NUM_COLORS] = {0};
+        SDL_Point colorPoints[NUM_COLORS][256] = {0};
         uint16_t tileMapOffset = tileMap + ((line_ / 8) * 32);
         uint16_t yOffset = (line_ & 7) * 2;
         uint16_t tileMapIndex = 0;
@@ -451,10 +463,9 @@ void drawDebugTiles(void)
                 tileLine = tileLineAt(tileMapOffset + tileMapIndex, yOffset);
             }
         }
-        for (uint8_t i = 0; i < 4; i++)
+        for (uint8_t i = 0; i < NUM_COLORS; i++)
         {
-            static uint8_t colors[4] = {235, 192, 96, 0};
-            uint8_t color = colors[i];
+            uint8_t color = s_colors[i];
             SDL_SetRenderDrawColor(debug_renderer, color, color, color, 255);
             SDL_Point *points = colorPoints[i];
             int count = colorIndex[i];
@@ -462,10 +473,10 @@ void drawDebugTiles(void)
         }
     }
     SDL_SetRenderDrawColor(debug_renderer, 0xAA, 0x33, 0x66, 255);
-    SDL_RenderDrawLine(debug_renderer, bgScrollX, bgScrollY, bgScrollX + 160, bgScrollY);
-    SDL_RenderDrawLine(debug_renderer, bgScrollX + 160, bgScrollY, bgScrollX + 160, bgScrollY + 144);
-    SDL_RenderDrawLine(debug_renderer, bgScrollX + 160, bgScrollY + 144, bgScrollX, bgScrollY + 144);
-    SDL_RenderDrawLine(debug_renderer, bgScrollX, bgScrollY + 144, bgScrollX, bgScrollY);
+    SDL_RenderDrawLine(debug_renderer, bgScrollX, bgScrollY, bgScrollX + WIDTH, bgScrollY);
+    SDL_RenderDrawLine(debug_renderer, bgScrollX + WIDTH, bgScrollY, bgScrollX + WIDTH, bgScrollY + HEIGHT);
+    SDL_RenderDrawLine(debug_renderer, bgScrollX + WIDTH, bgScrollY + HEIGHT, bgScrollX, bgScrollY + HEIGHT);
+    SDL_RenderDrawLine(debug_renderer, bgScrollX, bgScrollY + HEIGHT, bgScrollX, bgScrollY);
     SDL_RenderPresent(debug_renderer);
 }
 #endif
