@@ -3,5 +3,6 @@ docs/
 *.o
 *.obj
 *.gb
+*.sav
 .*.swp
 

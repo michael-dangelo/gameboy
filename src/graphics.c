@@ -1,5 +1,6 @@
 #include "graphics.h"
 
+#include "cartridge.h"
 #include "debug.h"
 #include "input.h"
 
@@ -93,6 +94,12 @@ static uint8_t vblankInterruptRequest = 0;
 // Status Interrupt Request
 static uint8_t statusInterruptRequest = 0;
 
+void cleanup(void)
+{
+    Cartridge_writeSaveFile();
+    SDL_Quit();
+}
+
 void Graphics_init(void)
 {
     if (SDL_Init(SDL_INIT_VIDEO))
@@ -100,7 +107,7 @@ void Graphics_init(void)
         printf("Failed to initialize SDL\n");
         exit(1);
     }
-    atexit(SDL_Quit);
+    atexit(cleanup);
     window = SDL_CreateWindow(
         "Gameboy", 500, 250,  WIDTH * s_scale, HEIGHT * s_scale, 0
     );

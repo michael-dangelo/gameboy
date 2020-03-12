@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 
 #define MAX_CART_SIZE 1 << 21
@@ -30,14 +31,21 @@ static const CartridgeType supported[NUM_SUPPORTED] =
     MBC3, MBC3_RAM, MBC3_RAM_BATTERY
 };
 
-CartridgeType cartType = 0;
+static const uint16_t externalRamSizes[4] =
+{
+    0, 2048, 8192, 32768
+};
 
-uint8_t externalRamEnable = 0;
-uint8_t romBankSelect = 0;
-uint8_t ramBankSelect = 0;
-uint8_t romRamModeSelect = 0;
+static char cartName[101];
+static CartridgeType cartType = 0;
+static uint16_t ramSize = 0;
 
-struct tm timeRegister = {};
+static uint8_t externalRamEnable = 0;
+static uint8_t romBankSelect = 0;
+static uint8_t ramBankSelect = 0;
+static uint8_t romRamModeSelect = 0;
+
+static struct tm timeRegister = {};
 
 uint8_t isSupportedCartridge(uint8_t cartType)
 {
@@ -106,8 +114,11 @@ uint8_t clockValue()
     return 0;
 }
 
+void loadSaveFile(void);
+
 void Cartridge_load(const char *filename)
 {
+    strncpy(cartName, filename, 100);
     FILE *cartridge = fopen(filename, "rb");
     if (!cartridge)
     {
@@ -125,7 +136,9 @@ void Cartridge_load(const char *filename)
         exit(1);
     }
     cartType = cart[0x147];
+    ramSize = externalRamSizes[cart[0x149]];
     assert(isSupportedCartridge(cartType));
+    loadSaveFile();
 }
 
 uint8_t Cartridge_rb(uint16_t addr)
@@ -192,4 +205,69 @@ uint8_t *Cartridge_rawAddress(uint32_t addr)
     if (addr < 0x4000)
         return cart + addr;
     return cart + translateMBCRomAddr(addr);
+}
+
+void saveFileName(char buffer[])
+{
+    for (uint8_t i = 0; i < 101; i++)
+    {
+        if (i == 98)
+            return;
+        char a = cartName[i];
+        if (a == '\0')
+            return;
+        if (a == '.')
+        {
+            buffer[i] = '.';
+            buffer[i + 1] = 's';
+            buffer[i + 2] = 'a';
+            buffer[i + 3] = 'v';
+            break;
+        }
+        buffer[i] = cartName[i];
+    }
+}
+
+void loadSaveFile(void)
+{
+    char saveName[101] = {};
+    saveFileName(saveName);
+    FILE *saveFile = fopen(saveName, "rb");
+    if (!saveFile)
+    {
+        printf("Failed to open save file %s\n", saveName);
+        exit(1);
+    }
+    if (!fread(externalRam, 1, ramSize, saveFile))
+    {
+        printf("Failed to write to save file\n");
+        exit(1);
+    }
+    if (fclose(saveFile))
+    {
+        printf("Failed to close save file\n");
+        exit(1);
+    }
+}
+
+void Cartridge_writeSaveFile(void)
+{
+    char saveName[101] = {};
+    saveFileName(saveName);
+    FILE *saveFile = fopen(saveName, "wb");
+    if (!saveFile)
+    {
+        printf("Failed to open save file %s\n", saveName);
+        exit(1);
+    }
+    if (!fwrite(externalRam, 1, ramSize, saveFile))
+    {
+        printf("Failed to write to save file\n");
+        exit(1);
+    }
+    if (fclose(saveFile))
+    {
+        printf("Failed to close save file\n");
+        exit(1);
+    }
 }
