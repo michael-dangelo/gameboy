@@ -34,7 +34,7 @@ static uint8_t s_scale = 3;
 static LARGE_INTEGER freq;
 
 #define NUM_COLORS 4
-static uint8_t s_colors[NUM_COLORS] = {220, 192, 96, 0};
+static uint8_t s_colors[NUM_COLORS] = {232, 160, 88, 16};
 
 typedef enum {
     HBLANK,
@@ -154,8 +154,8 @@ static uint16_t tileLineAt(uint16_t addr, uint16_t yOffset)
 
 static uint8_t colorIndexAt(uint16_t tileLine, uint8_t x)
 {
-    uint8_t l = (tileLine >> 8) & 0xFF;
-    uint8_t h = tileLine & 0xFF;
+    uint8_t l = tileLine & 0xFF;
+    uint8_t h = (tileLine >> 8) & 0xFF;
     uint8_t pixelOffset = 7 - x; // leftmost pixel is 7th bit
     return ((l >> pixelOffset) & 1) | (((h >> pixelOffset) & 1) << 1);
 }
