@@ -13,7 +13,7 @@ static struct
 } r;
 
 static void dispatch(uint8_t op);
-#if defined(DEBUG_CPU) && defined(DEBUG)
+#ifdef DEBUG_CPU
 static const char *opName(uint8_t op);
 static const char *cbOpName(uint8_t op);
 #endif
@@ -834,7 +834,7 @@ const char *cbOpNames[256] = {
     "SET7 B", "SET7 C", "SET7 D", "SET7 E", "SET7 H", "SET7 L", "SET7 (HL)", "SET7 A",
 };
 
-#if defined(DEBUG_CPU) && defined(DEBUG)
+#ifdef DEBUG_CPU
 const char *opName(uint8_t op)
 {
     return opNames[op];
