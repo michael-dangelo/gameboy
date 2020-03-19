@@ -29,12 +29,14 @@ static uint16_t clock = 0;
 
 #define WIDTH 160
 #define HEIGHT 144
-static uint8_t s_fps = 60;
 static uint8_t s_scale = 3;
 static LARGE_INTEGER freq;
 
 #define NUM_COLORS 4
 static uint8_t s_colors[NUM_COLORS] = {232, 160, 88, 16};
+
+#define CLOCK_HZ 4194304
+#define CLOCKS_PER_FRAME 70224
 
 typedef enum {
     HBLANK,
@@ -330,7 +332,7 @@ void render(void)
 
     static LARGE_INTEGER start, end;
     static uint8_t started = 0;
-    const double msPerFrame = 1000.0 / s_fps;
+    const double msPerFrame = (1000.0 / CLOCK_HZ) * CLOCKS_PER_FRAME;
     if (started)
     {
         QueryPerformanceCounter(&end);
