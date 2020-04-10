@@ -4,6 +4,7 @@
 #include "debug.h"
 #include "graphics.h"
 #include "input.h"
+#include "sound.h"
 #include "timer.h"
 
 #include <assert.h>
@@ -117,22 +118,16 @@ uint8_t Mem_rb(uint16_t addr)
         val = interruptFlag;
         MEM_READ("interrupt flag", addr, val);
     }
-    else if (addr == 0xFF24)
+    else if ((0xFF10 <= addr && addr <= 0xFF14) ||
+        (0xFF16 <= addr && addr <= 0xFF19) ||
+        (0xFF1A <= addr && addr <= 0xFF1E) ||
+        (0xFF24 <= addr && addr <= 0xFF26))
     {
-        val = ram[addr];
-        MEM_READ("volume control", addr, val);
+        val = Sound_rb(addr);
+        MEM_READ("sound", addr, val);
     }
-    else if (addr == 0xFF25)
-    {
-        val = ram[addr];
-        MEM_READ("sound output select", addr, val);
-    }
-    else if (addr == 0xFF26)
-    {
-        val = ram[addr];
-        MEM_READ("sound enable", addr, val);
-    }
-    else if ((0xFF40 <= addr && addr <= 0xFF45) || (0xFF47 <= addr && addr <= 0xFF49) ||
+    else if ((0xFF40 <= addr && addr <= 0xFF45) ||
+        (0xFF47 <= addr && addr <= 0xFF49) ||
         addr == 0xFF4A || addr == 0xFF4B)
     {
         val = Graphics_rb(addr);
@@ -238,22 +233,16 @@ void Mem_wb(uint16_t addr, uint8_t val)
         MEM_WRITE("interrupt flag", addr, val);
         INT_PRINT(("interrupt flag written, val %02x\n", val));
     }
-    else if (addr == 0xFF24)
+    else if ((0xFF10 <= addr && addr <= 0xFF14) ||
+        (0xFF16 <= addr && addr <= 0xFF19) ||
+        (0xFF1A <= addr && addr <= 0xFF1E) ||
+        (0xFF24 <= addr && addr <= 0xFF26))
     {
-        ram[addr] = val;
-        MEM_WRITE("volume control", addr, val);
+        Sound_wb(addr, val);
+        MEM_READ("sound", addr, val);
     }
-    else if (addr == 0xFF25)
-    {
-        ram[addr] = val;
-        MEM_WRITE("sound output select", addr, val);
-    }
-    else if (addr == 0xFF26)
-    {
-        ram[addr] = val;
-        MEM_WRITE("sound enable", addr, val);
-    }
-    else if ((0xFF40 <= addr && addr <= 0xFF45) || (0xFF47 <= addr && addr <= 0xFF49) ||
+    else if ((0xFF40 <= addr && addr <= 0xFF45) ||
+        (0xFF47 <= addr && addr <= 0xFF49) ||
         addr == 0xFF4A || addr == 0xFF4B)
     {
         Graphics_wb(addr, val);
